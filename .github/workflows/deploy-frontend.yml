@@ -43,6 +43,7 @@ jobs:
         with:
           path: frontend/out
 
+  # Deploy fails with 404 until Pages is enabled: repo Settings → Pages → Source: GitHub Actions
   deploy:
     environment:
       name: github-pages
