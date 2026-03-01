@@ -26,13 +26,13 @@ jobs:
         with:
           node-version: "20"
 
+      # Pages must be enabled in repo Settings → Pages → Source: GitHub Actions
       - name: Setup Pages
         id: pages
         uses: actions/configure-pages@v5
         with:
           static_site_generator: next
-          enablement: true
-          token: ${{ secrets.REPO_ACCESS_TOKEN || github.token }}
+          enablement: false
 
       - name: Install dependencies
         working-directory: frontend
