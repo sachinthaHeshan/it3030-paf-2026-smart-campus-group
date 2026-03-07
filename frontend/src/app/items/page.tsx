@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import config from "../../../config";
 
 type Item = {
   id: number;
@@ -13,7 +14,7 @@ export default function ItemsPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/items`)
+    fetch(`${config.backendUrl}/items`)
       .then((res) => {
         if (!res.ok) throw new Error("Failed to fetch items");
         return res.json();
