@@ -1,0 +1,18 @@
+{
+  "builds": [
+    {
+      "builder": "railpack",
+      "src": "backend",
+      "command": "./mvnw clean package"
+    }
+  ],
+  "deployments": [
+    {
+      "restart_policy": "on-failure",
+      "start": {
+        "command": "java -jar target/*.jar",
+        "src": "backend"
+      }
+    }
+  ]
+}
