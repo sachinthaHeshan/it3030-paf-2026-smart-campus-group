@@ -1,6 +1,10 @@
 # macOS
 .DS_Store
 
+# Environment (secrets)
+.env
+backend/.env
+
 # Backend (Maven/Java)
 backend/HELP.md
 backend/target/
