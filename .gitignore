@@ -40,6 +40,9 @@ backend/build/
 ### VS Code ###
 .vscode/
 
+# Cursor skills (local only)
+.cursor/skills/
+
 # Frontend (Next.js)
 frontend/node_modules
 frontend/.pnp
