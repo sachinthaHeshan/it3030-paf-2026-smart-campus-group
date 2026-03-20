@@ -1,6 +1,6 @@
 import config from "../../config";
 
-const TOKEN_KEY = "smartcampus_token";
+const TOKEN_KEY = "uniflow_token";
 
 export async function apiFetch<T = unknown>(
   path: string,

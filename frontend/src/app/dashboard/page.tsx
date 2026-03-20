@@ -10,7 +10,7 @@ function DashboardContent() {
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-          <h1 className="text-xl font-bold text-gray-900">Smart Campus</h1>
+          <h1 className="text-xl font-bold text-gray-900">UniFlow</h1>
           <div className="flex items-center gap-4">
             <div className="text-sm text-right">
               <p className="font-medium text-gray-900">{user?.name}</p>

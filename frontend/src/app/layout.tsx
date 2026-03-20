@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Smart Campus",
-  description: "Smart Campus Resource Management System",
+  title: "UniFlow",
+  description: "UniFlow Resource Management System",
 };
 
 export default function RootLayout({

@@ -49,7 +49,7 @@ export default function LoginPage() {
       <div className="w-full max-w-md mx-4">
         <div className="bg-white rounded-2xl shadow-xl p-8 space-y-8">
           <div className="text-center space-y-2">
-            <h1 className="text-3xl font-bold text-gray-900">Smart Campus</h1>
+            <h1 className="text-3xl font-bold text-gray-900">UniFlow</h1>
             <p className="text-gray-500">
               Sign in to manage bookings, resources, and tickets
             </p>
@@ -78,7 +78,7 @@ export default function LoginPage() {
           )}
 
           <p className="text-xs text-center text-gray-400">
-            By signing in, you agree to the Smart Campus terms of service.
+            By signing in, you agree to the UniFlow terms of service.
           </p>
         </div>
       </div>
