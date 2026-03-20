@@ -43,6 +43,10 @@ public class UserRepository {
         return users.stream().findFirst();
     }
 
+    public List<User> findAll() {
+        return jdbcTemplate.query("SELECT * FROM users ORDER BY created_at DESC", ROW_MAPPER);
+    }
+
     public User save(String email, String name, String profilePicture, String provider, String providerId) {
         Timestamp now = Timestamp.from(java.time.Instant.now());
         jdbcTemplate.update(
@@ -53,5 +57,19 @@ public class UserRepository {
                 email, name, profilePicture, provider, providerId, now, now);
 
         return findByEmail(email).orElseThrow();
+    }
+
+    public int updateRole(Long id, String role) {
+        Timestamp now = Timestamp.from(java.time.Instant.now());
+        return jdbcTemplate.update(
+                "UPDATE users SET role = ?, updated_at = ? WHERE id = ?",
+                role, now, id);
+    }
+
+    public int updateActiveStatus(Long id, boolean isActive) {
+        Timestamp now = Timestamp.from(java.time.Instant.now());
+        return jdbcTemplate.update(
+                "UPDATE users SET is_active = ?, updated_at = ? WHERE id = ?",
+                isActive, now, id);
     }
 }

@@ -1,76 +1,82 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import PageHeader from "@/components/ui/PageHeader";
 import StatusBadge from "@/components/ui/StatusBadge";
-import { Search, ShieldCheck, ShieldOff } from "lucide-react";
+import { apiFetch } from "@/lib/api";
+import { Search, ShieldCheck, ShieldOff, Loader2 } from "lucide-react";
 
 const ROLES = ["USER", "TECHNICIAN", "MANAGER", "ADMIN"];
 
-const mockUsers = [
-  {
-    id: 1,
-    name: "Alex Rivera",
-    email: "alex.rivera@university.edu",
-    role: "USER",
-    isActive: true,
-    profilePicture: null,
-    createdAt: "2024-08-15",
-  },
-  {
-    id: 2,
-    name: "Dr. Sarah Chen",
-    email: "sarah.chen@university.edu",
-    role: "MANAGER",
-    isActive: true,
-    profilePicture: null,
-    createdAt: "2024-06-01",
-  },
-  {
-    id: 3,
-    name: "John Doe",
-    email: "john.doe@university.edu",
-    role: "TECHNICIAN",
-    isActive: true,
-    profilePicture: null,
-    createdAt: "2024-07-20",
-  },
-  {
-    id: 4,
-    name: "Lisa Wang",
-    email: "lisa.wang@university.edu",
-    role: "USER",
-    isActive: true,
-    profilePicture: null,
-    createdAt: "2024-09-10",
-  },
-  {
-    id: 5,
-    name: "Robert Lee",
-    email: "robert.lee@university.edu",
-    role: "TECHNICIAN",
-    isActive: false,
-    profilePicture: null,
-    createdAt: "2024-05-01",
-  },
-  {
-    id: 6,
-    name: "Admin User",
-    email: "admin@university.edu",
-    role: "ADMIN",
-    isActive: true,
-    profilePicture: null,
-    createdAt: "2024-01-01",
-  },
-];
+interface UserRecord {
+  id: number;
+  email: string;
+  name: string;
+  profilePicture: string | null;
+  role: string;
+  isActive: boolean;
+  createdAt: string;
+}
 
 function UserManagementContent() {
+  const [users, setUsers] = useState<UserRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("All");
-  const [activeFilter, setActiveFilter] = useState<"all" | "active" | "inactive">("all");
+  const [activeFilter, setActiveFilter] = useState<
+    "all" | "active" | "inactive"
+  >("all");
+  const [updatingId, setUpdatingId] = useState<number | null>(null);
 
-  const filtered = mockUsers.filter((u) => {
+  const fetchUsers = useCallback(async () => {
+    try {
+      setError(null);
+      const data = await apiFetch<UserRecord[]>("/api/admin/users");
+      setUsers(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load users");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
+
+  const handleRoleChange = async (userId: number, newRole: string) => {
+    setUpdatingId(userId);
+    try {
+      const updated = await apiFetch<UserRecord>(
+        `/api/admin/users/${userId}/role`,
+        { method: "PUT", body: JSON.stringify({ role: newRole }) },
+      );
+      setUsers((prev) => prev.map((u) => (u.id === userId ? updated : u)));
+    } catch {
+      alert("Failed to update role");
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  const handleToggleActive = async (userId: number, active: boolean) => {
+    setUpdatingId(userId);
+    try {
+      const updated = await apiFetch<UserRecord>(
+        `/api/admin/users/${userId}/status`,
+        { method: "PUT", body: JSON.stringify({ active }) },
+      );
+      setUsers((prev) => prev.map((u) => (u.id === userId ? updated : u)));
+    } catch {
+      alert("Failed to update status");
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  const filtered = users.filter((u) => {
     const matchesSearch =
       u.name.toLowerCase().includes(search.toLowerCase()) ||
       u.email.toLowerCase().includes(search.toLowerCase());
@@ -82,11 +88,44 @@ function UserManagementContent() {
     return matchesSearch && matchesRole && matchesActive;
   });
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 size={24} className="animate-spin text-primary" />
+        <span className="ml-2 text-[14px] text-muted">Loading users...</span>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="max-w-[1200px] mx-auto">
+        <PageHeader
+          title="User Management"
+          subtitle="Manage user accounts and permissions"
+        />
+        <div className="rounded-xl bg-red-50 border border-red-200 p-6 text-center">
+          <p className="text-[14px] text-red-700">{error}</p>
+          <button
+            type="button"
+            onClick={() => {
+              setLoading(true);
+              fetchUsers();
+            }}
+            className="mt-3 rounded-lg bg-primary px-4 py-2 text-[13px] font-medium text-white hover:bg-primary-dark transition-colors"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-[1200px] mx-auto">
       <PageHeader
         title="User Management"
-        subtitle="Manage user accounts and permissions"
+        subtitle={`${users.length} registered user${users.length !== 1 ? "s" : ""}`}
       />
 
       {/* Filter Bar */}
@@ -160,64 +199,91 @@ function UserManagementContent() {
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {filtered.map((u) => (
-              <tr key={u.id} className="hover:bg-gray-50">
-                <td className="px-5 py-3.5">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary text-[12px] font-semibold">
-                      {u.name.charAt(0)}
-                    </div>
-                    <span className="font-medium text-foreground">
-                      {u.name}
-                    </span>
-                  </div>
-                </td>
-                <td className="px-5 py-3.5 text-muted">{u.email}</td>
-                <td className="px-5 py-3.5">
-                  <StatusBadge status={u.role} />
-                </td>
-                <td className="px-5 py-3.5">
-                  <span
-                    className={`inline-flex items-center gap-1.5 text-[12px] font-medium ${u.isActive ? "text-green-600" : "text-red-500"}`}
-                  >
-                    <span
-                      className={`h-1.5 w-1.5 rounded-full ${u.isActive ? "bg-green-500" : "bg-red-500"}`}
-                    />
-                    {u.isActive ? "Active" : "Inactive"}
-                  </span>
-                </td>
-                <td className="px-5 py-3.5 text-muted">{u.createdAt}</td>
-                <td className="px-5 py-3.5">
-                  <div className="flex items-center justify-end gap-2">
-                    <select
-                      defaultValue={u.role}
-                      className="h-8 rounded border border-border bg-white px-2 text-[12px] outline-none focus:border-primary"
-                    >
-                      {ROLES.map((r) => (
-                        <option key={r} value={r}>
-                          {r}
-                        </option>
-                      ))}
-                    </select>
-                    <button
-                      type="button"
-                      className={`rounded p-1.5 transition-colors ${
-                        u.isActive
-                          ? "text-red-500 hover:bg-red-50"
-                          : "text-green-600 hover:bg-green-50"
-                      }`}
-                      title={u.isActive ? "Deactivate" : "Activate"}
-                    >
-                      {u.isActive ? (
-                        <ShieldOff size={16} />
-                      ) : (
-                        <ShieldCheck size={16} />
-                      )}
-                    </button>
-                  </div>
+            {filtered.length === 0 ? (
+              <tr>
+                <td
+                  colSpan={6}
+                  className="px-5 py-8 text-center text-muted text-[13px]"
+                >
+                  No users found.
                 </td>
               </tr>
-            ))}
+            ) : (
+              filtered.map((u) => (
+                <tr
+                  key={u.id}
+                  className={`hover:bg-gray-50 ${updatingId === u.id ? "opacity-60" : ""}`}
+                >
+                  <td className="px-5 py-3.5">
+                    <div className="flex items-center gap-3">
+                      {u.profilePicture ? (
+                        <img
+                          src={u.profilePicture}
+                          alt={u.name}
+                          className="h-8 w-8 rounded-full object-cover"
+                          referrerPolicy="no-referrer"
+                        />
+                      ) : (
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary text-[12px] font-semibold">
+                          {u.name.charAt(0)}
+                        </div>
+                      )}
+                      <span className="font-medium text-foreground">
+                        {u.name}
+                      </span>
+                    </div>
+                  </td>
+                  <td className="px-5 py-3.5 text-muted">{u.email}</td>
+                  <td className="px-5 py-3.5">
+                    <StatusBadge status={u.role} />
+                  </td>
+                  <td className="px-5 py-3.5">
+                    <span
+                      className={`inline-flex items-center gap-1.5 text-[12px] font-medium ${u.isActive ? "text-green-600" : "text-red-500"}`}
+                    >
+                      <span
+                        className={`h-1.5 w-1.5 rounded-full ${u.isActive ? "bg-green-500" : "bg-red-500"}`}
+                      />
+                      {u.isActive ? "Active" : "Inactive"}
+                    </span>
+                  </td>
+                  <td className="px-5 py-3.5 text-muted">{u.createdAt}</td>
+                  <td className="px-5 py-3.5">
+                    <div className="flex items-center justify-end gap-2">
+                      <select
+                        value={u.role}
+                        onChange={(e) => handleRoleChange(u.id, e.target.value)}
+                        disabled={updatingId === u.id}
+                        className="h-8 rounded border border-border bg-white px-2 text-[12px] outline-none focus:border-primary disabled:opacity-50"
+                      >
+                        {ROLES.map((r) => (
+                          <option key={r} value={r}>
+                            {r}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        onClick={() => handleToggleActive(u.id, !u.isActive)}
+                        disabled={updatingId === u.id}
+                        className={`rounded p-1.5 transition-colors disabled:opacity-50 ${
+                          u.isActive
+                            ? "text-red-500 hover:bg-red-50"
+                            : "text-green-600 hover:bg-green-50"
+                        }`}
+                        title={u.isActive ? "Deactivate" : "Activate"}
+                      >
+                        {u.isActive ? (
+                          <ShieldOff size={16} />
+                        ) : (
+                          <ShieldCheck size={16} />
+                        )}
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
