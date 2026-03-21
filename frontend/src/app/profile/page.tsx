@@ -16,7 +16,7 @@ function ProfileContent() {
       <div className="space-y-6">
         {/* Profile Card */}
         <div className="rounded-xl bg-card-bg border border-border shadow-sm p-6">
-          <div className="flex items-center gap-5 mb-6 pb-6 border-b border-border">
+          <div className="flex flex-col sm:flex-row items-center gap-5 mb-6 pb-6 border-b border-border">
             {user?.profilePicture ? (
               <img
                 src={user.profilePicture}

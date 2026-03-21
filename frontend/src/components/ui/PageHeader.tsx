@@ -14,7 +14,7 @@ export default function PageHeader({
   backHref,
 }: PageHeaderProps) {
   return (
-    <div className="flex items-start justify-between mb-6">
+    <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between mb-6">
       <div>
         {backHref && (
           <a
@@ -41,7 +41,7 @@ export default function PageHeader({
           <p className="text-[14px] text-muted mt-0.5">{subtitle}</p>
         )}
       </div>
-      {actions && <div className="flex items-center gap-3">{actions}</div>}
+      {actions && <div className="flex items-center gap-3 flex-wrap">{actions}</div>}
     </div>
   );
 }

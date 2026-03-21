@@ -91,7 +91,7 @@ export default function FacilityDetailClient() {
               <StatusBadge status={mockResource.type} />
             </div>
 
-            <div className="grid grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-4">
                 <div>
                   <p className="text-[12px] text-muted uppercase tracking-wide mb-1">
@@ -130,7 +130,7 @@ export default function FacilityDetailClient() {
                   </p>
                 </div>
               </div>
-              <div className="col-span-2">
+              <div className="md:col-span-2">
                 <p className="text-[12px] text-muted uppercase tracking-wide mb-1">
                   Description
                 </p>
@@ -146,7 +146,7 @@ export default function FacilityDetailClient() {
               <Clock size={16} className="text-muted" />
               Availability Windows
             </h2>
-            <div className="overflow-hidden rounded-lg border border-border">
+            <div className="overflow-x-auto rounded-lg border border-border">
               <table className="w-full text-[13px]">
                 <thead>
                   <tr className="bg-gray-50 border-b border-border">

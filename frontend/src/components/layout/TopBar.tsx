@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import StatusBadge from "@/components/ui/StatusBadge";
-import { Search, Bell, LayoutGrid, LogOut, User } from "lucide-react";
+import { Search, Bell, LayoutGrid, LogOut, User, Menu } from "lucide-react";
 
 const ROLE_LABELS: Record<string, string> = {
   USER: "User",
@@ -13,7 +13,11 @@ const ROLE_LABELS: Record<string, string> = {
   ADMIN: "Administrator",
 };
 
-export default function TopBar() {
+interface TopBarProps {
+  onMenuClick?: () => void;
+}
+
+export default function TopBar({ onMenuClick }: TopBarProps) {
   const { user, logout } = useAuth();
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -41,10 +45,19 @@ export default function TopBar() {
   const roleLabel = ROLE_LABELS[user?.role || ""] || user?.role || "Member";
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-topbar-bg px-6">
-      <div className="flex items-center gap-4">
+    <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-topbar-bg px-4 md:px-6">
+      <div className="flex items-center gap-3 md:gap-4">
+        {onMenuClick && (
+          <button
+            type="button"
+            onClick={onMenuClick}
+            className="md:hidden rounded-lg p-2 text-muted hover:bg-gray-100 transition-colors"
+          >
+            <Menu size={22} />
+          </button>
+        )}
         <h1 className="text-xl font-bold text-foreground">UniFlow</h1>
-        <div className="relative ml-4">
+        <div className="relative ml-4 hidden md:block">
           <Search
             size={16}
             className="absolute left-3 top-1/2 -translate-y-1/2 text-muted"
@@ -57,7 +70,7 @@ export default function TopBar() {
         </div>
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2 md:gap-4">
         <button
           type="button"
           className="relative rounded-lg p-2 text-muted hover:bg-gray-100 transition-colors"
@@ -67,15 +80,15 @@ export default function TopBar() {
         </button>
         <button
           type="button"
-          className="rounded-lg p-2 text-muted hover:bg-gray-100 transition-colors"
+          className="hidden md:block rounded-lg p-2 text-muted hover:bg-gray-100 transition-colors"
         >
           <LayoutGrid size={20} />
         </button>
 
         {/* Avatar + Dropdown */}
-        <div className="relative ml-2" ref={dropdownRef}>
+        <div className="relative ml-1 md:ml-2" ref={dropdownRef}>
           <div className="flex items-center gap-3">
-            <div className="text-right">
+            <div className="text-right hidden md:block">
               <p className="text-[13.5px] font-semibold text-foreground leading-tight">
                 {user?.name || "User"}
               </p>

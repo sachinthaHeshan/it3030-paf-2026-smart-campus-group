@@ -14,6 +14,7 @@ import {
   HelpCircle,
   CirclePlus,
   UserCircle,
+  X,
 } from "lucide-react";
 
 interface NavItem {
@@ -43,7 +44,12 @@ const bottomItems: NavItem[] = [
   { label: "Help", href: "/help/", icon: HelpCircle },
 ];
 
-export default function Sidebar() {
+interface SidebarProps {
+  open?: boolean;
+  onClose?: () => void;
+}
+
+export default function Sidebar({ open, onClose }: SidebarProps) {
   const pathname = usePathname();
   const { user } = useAuth();
   const role = user?.role || "USER";
@@ -52,18 +58,29 @@ export default function Sidebar() {
     (item) => !item.roles || item.roles.includes(role),
   );
 
-  return (
-    <aside className="fixed left-0 top-0 z-40 flex h-screen w-[220px] flex-col bg-sidebar-bg text-sidebar-text">
-      <div className="flex items-center gap-3 px-5 py-6">
-        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-white font-bold text-lg">
-          U
+  const sidebarContent = (
+    <>
+      <div className="flex items-center justify-between px-5 py-6">
+        <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-white font-bold text-lg">
+            U
+          </div>
+          <div>
+            <p className="text-white font-semibold text-[15px] leading-tight">
+              UniFlow
+            </p>
+            <p className="text-sidebar-text text-[11px]">SmartCampus</p>
+          </div>
         </div>
-        <div>
-          <p className="text-white font-semibold text-[15px] leading-tight">
-            UniFlow
-          </p>
-          <p className="text-sidebar-text text-[11px]">SmartCampus</p>
-        </div>
+        {onClose && (
+          <button
+            type="button"
+            onClick={onClose}
+            className="md:hidden rounded-lg p-1 text-sidebar-text hover:text-white transition-colors"
+          >
+            <X size={20} />
+          </button>
+        )}
       </div>
 
       <nav className="flex-1 px-3 space-y-1">
@@ -76,6 +93,7 @@ export default function Sidebar() {
             <Link
               key={item.href}
               href={item.href}
+              onClick={onClose}
               className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-[13.5px] font-medium transition-colors ${
                 isActive
                   ? "bg-primary text-white"
@@ -92,6 +110,7 @@ export default function Sidebar() {
       <div className="px-3 pb-3">
         <Link
           href="/incidents/new/"
+          onClick={onClose}
           className="flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-[13.5px] font-medium text-white transition-colors hover:bg-primary-dark mb-4"
         >
           <CirclePlus size={18} />
@@ -108,6 +127,7 @@ export default function Sidebar() {
               <Link
                 key={item.href}
                 href={item.href}
+                onClick={onClose}
                 className={`flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] transition-colors ${
                   isActive
                     ? "bg-primary text-white"
@@ -121,6 +141,32 @@ export default function Sidebar() {
           })}
         </div>
       </div>
-    </aside>
+    </>
+  );
+
+  return (
+    <>
+      {/* Desktop sidebar */}
+      <aside className="hidden md:flex fixed left-0 top-0 z-40 h-screen w-[220px] flex-col bg-sidebar-bg text-sidebar-text">
+        {sidebarContent}
+      </aside>
+
+      {/* Mobile drawer */}
+      {open && (
+        <div className="fixed inset-0 z-50 md:hidden">
+          <div
+            className="absolute inset-0 bg-black/50"
+            onClick={onClose}
+            onKeyDown={(e) => e.key === "Escape" && onClose?.()}
+            role="button"
+            tabIndex={0}
+            aria-label="Close sidebar"
+          />
+          <aside className="relative z-10 flex h-full w-[260px] flex-col bg-sidebar-bg text-sidebar-text shadow-xl">
+            {sidebarContent}
+          </aside>
+        </div>
+      )}
+    </>
   );
 }

@@ -47,7 +47,7 @@ function NewBookingContent() {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-[13px] font-medium text-foreground mb-1">
                 Start Time
