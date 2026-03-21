@@ -75,7 +75,7 @@ function NewIncidentContent() {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-[13px] font-medium text-foreground mb-1">
                   Category
@@ -129,7 +129,7 @@ function NewIncidentContent() {
               </select>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-[13px] font-medium text-foreground mb-1">
                   Contact Email
@@ -159,7 +159,7 @@ function NewIncidentContent() {
           <h2 className="text-[15px] font-semibold text-foreground mb-4">
             Attachments ({images.length}/3)
           </h2>
-          <div className="flex gap-4">
+          <div className="flex gap-4 flex-wrap">
             {images.map((img, index) => (
               <div
                 key={index}

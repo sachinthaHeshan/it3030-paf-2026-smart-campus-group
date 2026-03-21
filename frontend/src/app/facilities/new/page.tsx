@@ -60,8 +60,8 @@ function NewFacilityContent() {
           <h2 className="text-[15px] font-semibold text-foreground mb-4">
             Resource Details
           </h2>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="col-span-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="md:col-span-2">
               <label className="block text-[13px] font-medium text-foreground mb-1">
                 Name
               </label>
@@ -94,7 +94,7 @@ function NewFacilityContent() {
                 className="h-10 w-full rounded-lg border border-border bg-white px-3 text-[13px] outline-none focus:border-primary focus:ring-1 focus:ring-primary/30"
               />
             </div>
-            <div className="col-span-2">
+            <div className="md:col-span-2">
               <label className="block text-[13px] font-medium text-foreground mb-1">
                 Location
               </label>
@@ -104,7 +104,7 @@ function NewFacilityContent() {
                 className="h-10 w-full rounded-lg border border-border bg-white px-3 text-[13px] outline-none focus:border-primary focus:ring-1 focus:ring-primary/30"
               />
             </div>
-            <div className="col-span-2">
+            <div className="md:col-span-2">
               <label className="block text-[13px] font-medium text-foreground mb-1">
                 Description
               </label>
@@ -114,7 +114,7 @@ function NewFacilityContent() {
                 className="w-full rounded-lg border border-border bg-white px-3 py-2 text-[13px] outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 resize-none"
               />
             </div>
-            <div className="col-span-2">
+            <div className="md:col-span-2">
               <label className="block text-[13px] font-medium text-foreground mb-1">
                 Status
               </label>
@@ -159,7 +159,7 @@ function NewFacilityContent() {
           </div>
           <div className="space-y-3">
             {availabilityWindows.map((window, index) => (
-              <div key={index} className="flex items-center gap-3">
+              <div key={index} className="flex items-center gap-3 flex-wrap">
                 <select
                   value={window.day}
                   onChange={(e) => {

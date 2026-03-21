@@ -2,6 +2,7 @@ package com.sliit.smartcampus.user;
 
 import com.sliit.smartcampus.user.dto.UpdateRoleRequest;
 import com.sliit.smartcampus.user.dto.UpdateStatusRequest;
+import com.sliit.smartcampus.user.dto.UpdateUserRequest;
 import com.sliit.smartcampus.user.dto.UserResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -53,6 +54,18 @@ public class UserController {
             return ResponseEntity.ok(userService.toggleActive(id, request.active()));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.notFound().build();
+        }
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<UserResponse> updateUser(
+            @PathVariable Long id,
+            @RequestBody UpdateUserRequest request) {
+        try {
+            return ResponseEntity.ok(
+                    userService.updateUser(id, request.name(), request.role(), request.active()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().build();
         }
     }
 }

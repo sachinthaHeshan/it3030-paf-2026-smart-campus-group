@@ -117,7 +117,7 @@ function FacilitiesContent() {
       />
 
       {/* Filter Bar */}
-      <div className="flex items-center gap-3 mb-6">
+      <div className="flex items-center gap-3 mb-6 flex-wrap">
         <div className="relative flex-1 max-w-sm">
           <Search
             size={16}
@@ -145,12 +145,12 @@ function FacilitiesContent() {
         <input
           type="text"
           placeholder="Location..."
-          className="h-10 w-44 rounded-lg border border-border bg-card-bg px-3 text-[13px] outline-none focus:border-primary"
+          className="h-10 w-full sm:w-44 rounded-lg border border-border bg-card-bg px-3 text-[13px] outline-none focus:border-primary"
         />
         <input
           type="number"
           placeholder="Min capacity"
-          className="h-10 w-32 rounded-lg border border-border bg-card-bg px-3 text-[13px] outline-none focus:border-primary"
+          className="h-10 w-full sm:w-32 rounded-lg border border-border bg-card-bg px-3 text-[13px] outline-none focus:border-primary"
         />
       </div>
 

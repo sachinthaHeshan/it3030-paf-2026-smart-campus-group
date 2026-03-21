@@ -138,7 +138,7 @@ function BookingsContent() {
       </div>
 
       {/* Filter Bar */}
-      <div className="flex items-center gap-3 mb-5">
+      <div className="flex items-center gap-3 mb-5 flex-wrap">
         <div className="relative flex-1 max-w-sm">
           <Search
             size={16}
@@ -179,8 +179,8 @@ function BookingsContent() {
       </div>
 
       {/* Table */}
-      <div className="rounded-xl bg-card-bg border border-border shadow-sm overflow-hidden">
-        <table className="w-full text-[13px]">
+      <div className="rounded-xl bg-card-bg border border-border shadow-sm overflow-x-auto">
+        <table className="w-full text-[13px] min-w-[700px]">
           <thead>
             <tr className="bg-gray-50 border-b border-border">
               <th className="px-5 py-3 text-left font-medium text-muted">

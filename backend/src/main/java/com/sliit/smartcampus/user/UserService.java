@@ -51,6 +51,25 @@ public class UserService {
         return getUserById(id);
     }
 
+    public UserResponse updateUser(Long id, String name, String role, Boolean active) {
+        userRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        if (name != null && !name.isBlank()) {
+            userRepository.updateName(id, name.trim());
+        }
+        if (role != null) {
+            if (!VALID_ROLES.contains(role)) {
+                throw new IllegalArgumentException("Invalid role: " + role);
+            }
+            userRepository.updateRole(id, role);
+        }
+        if (active != null) {
+            userRepository.updateActiveStatus(id, active);
+        }
+        return getUserById(id);
+    }
+
     private UserResponse toResponse(User user) {
         return new UserResponse(
                 user.id(),

@@ -5,7 +5,7 @@ import MainLayout from "@/components/layout/MainLayout";
 import PageHeader from "@/components/ui/PageHeader";
 import StatusBadge from "@/components/ui/StatusBadge";
 import { apiFetch } from "@/lib/api";
-import { Search, ShieldCheck, ShieldOff, Loader2 } from "lucide-react";
+import { Search, Pencil, X, Check, Loader2 } from "lucide-react";
 
 const ROLES = ["USER", "TECHNICIAN", "MANAGER", "ADMIN"];
 
@@ -19,6 +19,12 @@ interface UserRecord {
   createdAt: string;
 }
 
+interface EditState {
+  name: string;
+  role: string;
+  active: boolean;
+}
+
 function UserManagementContent() {
   const [users, setUsers] = useState<UserRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -28,7 +34,14 @@ function UserManagementContent() {
   const [activeFilter, setActiveFilter] = useState<
     "all" | "active" | "inactive"
   >("all");
-  const [updatingId, setUpdatingId] = useState<number | null>(null);
+
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editState, setEditState] = useState<EditState>({
+    name: "",
+    role: "",
+    active: true,
+  });
+  const [saving, setSaving] = useState(false);
 
   const fetchUsers = useCallback(async () => {
     try {
@@ -46,33 +59,36 @@ function UserManagementContent() {
     fetchUsers();
   }, [fetchUsers]);
 
-  const handleRoleChange = async (userId: number, newRole: string) => {
-    setUpdatingId(userId);
-    try {
-      const updated = await apiFetch<UserRecord>(
-        `/api/admin/users/${userId}/role`,
-        { method: "PUT", body: JSON.stringify({ role: newRole }) },
-      );
-      setUsers((prev) => prev.map((u) => (u.id === userId ? updated : u)));
-    } catch {
-      alert("Failed to update role");
-    } finally {
-      setUpdatingId(null);
-    }
+  const startEdit = (user: UserRecord) => {
+    setEditingId(user.id);
+    setEditState({ name: user.name, role: user.role, active: user.isActive });
   };
 
-  const handleToggleActive = async (userId: number, active: boolean) => {
-    setUpdatingId(userId);
+  const cancelEdit = () => {
+    setEditingId(null);
+  };
+
+  const saveEdit = async () => {
+    if (!editingId) return;
+    setSaving(true);
     try {
       const updated = await apiFetch<UserRecord>(
-        `/api/admin/users/${userId}/status`,
-        { method: "PUT", body: JSON.stringify({ active }) },
+        `/api/admin/users/${editingId}`,
+        {
+          method: "PUT",
+          body: JSON.stringify({
+            name: editState.name,
+            role: editState.role,
+            active: editState.active,
+          }),
+        },
       );
-      setUsers((prev) => prev.map((u) => (u.id === userId ? updated : u)));
+      setUsers((prev) => prev.map((u) => (u.id === editingId ? updated : u)));
+      setEditingId(null);
     } catch {
-      alert("Failed to update status");
+      alert("Failed to save changes");
     } finally {
-      setUpdatingId(null);
+      setSaving(false);
     }
   };
 
@@ -129,7 +145,7 @@ function UserManagementContent() {
       />
 
       {/* Filter Bar */}
-      <div className="flex items-center gap-3 mb-5">
+      <div className="flex items-center gap-3 mb-5 flex-wrap">
         <div className="relative flex-1 max-w-sm">
           <Search
             size={16}
@@ -174,8 +190,8 @@ function UserManagementContent() {
       </div>
 
       {/* Users Table */}
-      <div className="rounded-xl bg-card-bg border border-border shadow-sm overflow-hidden">
-        <table className="w-full text-[13px]">
+      <div className="rounded-xl bg-card-bg border border-border shadow-sm overflow-x-auto">
+        <table className="w-full text-[13px] min-w-[700px]">
           <thead>
             <tr className="bg-gray-50 border-b border-border">
               <th className="px-5 py-3 text-left font-medium text-muted">
@@ -209,80 +225,153 @@ function UserManagementContent() {
                 </td>
               </tr>
             ) : (
-              filtered.map((u) => (
-                <tr
-                  key={u.id}
-                  className={`hover:bg-gray-50 ${updatingId === u.id ? "opacity-60" : ""}`}
-                >
-                  <td className="px-5 py-3.5">
-                    <div className="flex items-center gap-3">
-                      {u.profilePicture ? (
-                        <img
-                          src={u.profilePicture}
-                          alt={u.name}
-                          className="h-8 w-8 rounded-full object-cover"
-                          referrerPolicy="no-referrer"
-                        />
-                      ) : (
-                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary text-[12px] font-semibold">
-                          {u.name.charAt(0)}
-                        </div>
-                      )}
-                      <span className="font-medium text-foreground">
-                        {u.name}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="px-5 py-3.5 text-muted">{u.email}</td>
-                  <td className="px-5 py-3.5">
-                    <StatusBadge status={u.role} />
-                  </td>
-                  <td className="px-5 py-3.5">
-                    <span
-                      className={`inline-flex items-center gap-1.5 text-[12px] font-medium ${u.isActive ? "text-green-600" : "text-red-500"}`}
-                    >
-                      <span
-                        className={`h-1.5 w-1.5 rounded-full ${u.isActive ? "bg-green-500" : "bg-red-500"}`}
-                      />
-                      {u.isActive ? "Active" : "Inactive"}
-                    </span>
-                  </td>
-                  <td className="px-5 py-3.5 text-muted">{u.createdAt}</td>
-                  <td className="px-5 py-3.5">
-                    <div className="flex items-center justify-end gap-2">
-                      <select
-                        value={u.role}
-                        onChange={(e) => handleRoleChange(u.id, e.target.value)}
-                        disabled={updatingId === u.id}
-                        className="h-8 rounded border border-border bg-white px-2 text-[12px] outline-none focus:border-primary disabled:opacity-50"
-                      >
-                        {ROLES.map((r) => (
-                          <option key={r} value={r}>
-                            {r}
-                          </option>
-                        ))}
-                      </select>
-                      <button
-                        type="button"
-                        onClick={() => handleToggleActive(u.id, !u.isActive)}
-                        disabled={updatingId === u.id}
-                        className={`rounded p-1.5 transition-colors disabled:opacity-50 ${
-                          u.isActive
-                            ? "text-red-500 hover:bg-red-50"
-                            : "text-green-600 hover:bg-green-50"
-                        }`}
-                        title={u.isActive ? "Deactivate" : "Activate"}
-                      >
-                        {u.isActive ? (
-                          <ShieldOff size={16} />
+              filtered.map((u) => {
+                const isEditing = editingId === u.id;
+
+                return (
+                  <tr
+                    key={u.id}
+                    className={`transition-colors ${isEditing ? "bg-primary/3" : "hover:bg-gray-50"} ${saving && isEditing ? "opacity-60" : ""}`}
+                  >
+                    {/* Name column */}
+                    <td className="px-5 py-3.5">
+                      <div className="flex items-center gap-3">
+                        {u.profilePicture ? (
+                          <img
+                            src={u.profilePicture}
+                            alt={u.name}
+                            className="h-8 w-8 rounded-full object-cover"
+                            referrerPolicy="no-referrer"
+                          />
                         ) : (
-                          <ShieldCheck size={16} />
+                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary text-[12px] font-semibold">
+                            {(isEditing ? editState.name : u.name).charAt(0)}
+                          </div>
                         )}
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))
+                        {isEditing ? (
+                          <input
+                            type="text"
+                            value={editState.name}
+                            onChange={(e) =>
+                              setEditState((s) => ({
+                                ...s,
+                                name: e.target.value,
+                              }))
+                            }
+                            className="h-8 w-40 rounded border border-primary/40 bg-white px-2 text-[13px] font-medium outline-none focus:border-primary focus:ring-1 focus:ring-primary/30"
+                            autoFocus
+                          />
+                        ) : (
+                          <span className="font-medium text-foreground">
+                            {u.name}
+                          </span>
+                        )}
+                      </div>
+                    </td>
+
+                    {/* Email column */}
+                    <td className="px-5 py-3.5 text-muted">{u.email}</td>
+
+                    {/* Role column */}
+                    <td className="px-5 py-3.5">
+                      {isEditing ? (
+                        <select
+                          value={editState.role}
+                          onChange={(e) =>
+                            setEditState((s) => ({
+                              ...s,
+                              role: e.target.value,
+                            }))
+                          }
+                          className="h-8 rounded border border-primary/40 bg-white px-2 text-[12px] outline-none focus:border-primary focus:ring-1 focus:ring-primary/30"
+                        >
+                          {ROLES.map((r) => (
+                            <option key={r} value={r}>
+                              {r}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <StatusBadge status={u.role} />
+                      )}
+                    </td>
+
+                    {/* Status column */}
+                    <td className="px-5 py-3.5">
+                      {isEditing ? (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setEditState((s) => ({ ...s, active: !s.active }))
+                          }
+                          className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-medium border transition-colors ${
+                            editState.active
+                              ? "border-green-300 bg-green-50 text-green-700"
+                              : "border-red-300 bg-red-50 text-red-600"
+                          }`}
+                        >
+                          <span
+                            className={`h-1.5 w-1.5 rounded-full ${editState.active ? "bg-green-500" : "bg-red-500"}`}
+                          />
+                          {editState.active ? "Active" : "Inactive"}
+                        </button>
+                      ) : (
+                        <span
+                          className={`inline-flex items-center gap-1.5 text-[12px] font-medium ${u.isActive ? "text-green-600" : "text-red-500"}`}
+                        >
+                          <span
+                            className={`h-1.5 w-1.5 rounded-full ${u.isActive ? "bg-green-500" : "bg-red-500"}`}
+                          />
+                          {u.isActive ? "Active" : "Inactive"}
+                        </span>
+                      )}
+                    </td>
+
+                    {/* Joined column */}
+                    <td className="px-5 py-3.5 text-muted">{u.createdAt}</td>
+
+                    {/* Actions column */}
+                    <td className="px-5 py-3.5">
+                      <div className="flex items-center justify-end gap-1.5">
+                        {isEditing ? (
+                          <>
+                            <button
+                              type="button"
+                              onClick={saveEdit}
+                              disabled={
+                                saving || editState.name.trim().length === 0
+                              }
+                              className="rounded-lg bg-primary px-3 py-1.5 text-[12px] font-medium text-white hover:bg-primary-dark transition-colors disabled:opacity-50 flex items-center gap-1"
+                            >
+                              <Check size={14} />
+                              Save
+                            </button>
+                            <button
+                              type="button"
+                              onClick={cancelEdit}
+                              disabled={saving}
+                              className="rounded-lg border border-border px-3 py-1.5 text-[12px] font-medium text-muted hover:bg-gray-50 transition-colors disabled:opacity-50 flex items-center gap-1"
+                            >
+                              <X size={14} />
+                              Cancel
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => startEdit(u)}
+                            disabled={editingId !== null}
+                            className="rounded-lg border border-border px-3 py-1.5 text-[12px] font-medium text-foreground hover:bg-gray-50 transition-colors disabled:opacity-40 flex items-center gap-1.5"
+                          >
+                            <Pencil size={13} />
+                            Edit
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>

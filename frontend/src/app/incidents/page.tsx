@@ -227,8 +227,8 @@ function IncidentsContent() {
       </div>
 
       {/* Table */}
-      <div className="rounded-xl bg-card-bg border border-border shadow-sm overflow-hidden">
-        <table className="w-full text-[13px]">
+      <div className="rounded-xl bg-card-bg border border-border shadow-sm overflow-x-auto">
+        <table className="w-full text-[13px] min-w-[800px]">
           <thead>
             <tr className="bg-gray-50 border-b border-border">
               <th className="px-5 py-3 text-left font-medium text-muted">

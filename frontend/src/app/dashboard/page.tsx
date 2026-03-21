@@ -126,7 +126,7 @@ function DashboardContent() {
   return (
     <div className="max-w-[1200px] mx-auto space-y-6">
       {/* Header */}
-      <div className="flex items-start justify-between">
+      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">
             Welcome back, {firstName}!
@@ -135,7 +135,7 @@ function DashboardContent() {
             Your campus overview for {formatDate()}.
           </p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex gap-3 flex-wrap">
           <button
             type="button"
             className="flex items-center gap-2 rounded-lg border border-primary bg-white px-4 py-2.5 text-[13px] font-semibold text-primary hover:bg-blue-50 transition-colors"
@@ -154,9 +154,9 @@ function DashboardContent() {
       </div>
 
       {/* Main Grid */}
-      <div className="grid grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* My Bookings - spans 2 cols */}
-        <div className="col-span-2 rounded-xl bg-card-bg border border-border shadow-sm">
+        <div className="lg:col-span-2 rounded-xl bg-card-bg border border-border shadow-sm">
           <div className="flex items-center justify-between px-6 py-4 border-b border-border">
             <div className="flex items-center gap-2">
               <Calendar size={18} className="text-muted" />
@@ -278,7 +278,7 @@ function DashboardContent() {
             <ArrowRight size={14} />
           </button>
         </div>
-        <div className="grid grid-cols-4 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {mockResources.map((resource) => (
             <div
               key={resource.id}
