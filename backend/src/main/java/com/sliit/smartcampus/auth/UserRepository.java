@@ -72,4 +72,11 @@ public class UserRepository {
                 "UPDATE users SET is_active = ?, updated_at = ? WHERE id = ?",
                 isActive, now, id);
     }
+
+    public int updateName(Long id, String name) {
+        Timestamp now = Timestamp.from(java.time.Instant.now());
+        return jdbcTemplate.update(
+                "UPDATE users SET name = ?, updated_at = ? WHERE id = ?",
+                name, now, id);
+    }
 }
