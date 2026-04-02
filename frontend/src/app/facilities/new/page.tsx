@@ -1,28 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
+import { useRouter } from "next/navigation";
 import MainLayout from "@/components/layout/MainLayout";
+import RoleGuard from "@/components/RoleGuard";
 import PageHeader from "@/components/ui/PageHeader";
-import { Plus, Trash2 } from "lucide-react";
-
-const RESOURCE_TYPES = [
-  "LECTURE_HALL",
-  "LAB",
-  "MEETING_ROOM",
-  "PROJECTOR",
-  "CAMERA",
-  "OTHER_EQUIPMENT",
-];
-
-const DAYS_OF_WEEK = [
-  "MONDAY",
-  "TUESDAY",
-  "WEDNESDAY",
-  "THURSDAY",
-  "FRIDAY",
-  "SATURDAY",
-  "SUNDAY",
-];
+import { apiFetch } from "@/lib/api";
+import { uploadFile, getPublicUrl } from "@/lib/supabase";
+import {
+  RESOURCE_TYPES,
+  DAYS_OF_WEEK,
+  resourceFormSchema,
+  imageFileSchema,
+  firstZodMessage,
+} from "@/lib/schemas";
+import { Plus, Trash2, Loader2, Upload, X } from "lucide-react";
 
 interface AvailabilityRow {
   day: string;
@@ -31,9 +23,41 @@ interface AvailabilityRow {
 }
 
 function NewFacilityContent() {
+  const router = useRouter();
+
+  const [name, setName] = useState("");
+  const [type, setType] = useState("");
+  const [capacity, setCapacity] = useState("");
+  const [location, setLocation] = useState("");
+  const [description, setDescription] = useState("");
+  const [status, setStatus] = useState("ACTIVE");
   const [availabilityWindows, setAvailabilityWindows] = useState<
     AvailabilityRow[]
   >([{ day: "MONDAY", startTime: "08:00", endTime: "17:00" }]);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleImageSelect = (file: File) => {
+    const result = imageFileSchema.safeParse(file);
+    if (!result.success) {
+      setError(firstZodMessage(result.error, "Invalid image file."));
+      return;
+    }
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
+    setError(null);
+  };
+
+  const removeImage = () => {
+    setImageFile(null);
+    if (imagePreview) URL.revokeObjectURL(imagePreview);
+    setImagePreview(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
 
   const addWindow = () => {
     setAvailabilityWindows([
@@ -46,6 +70,64 @@ function NewFacilityContent() {
     setAvailabilityWindows(availabilityWindows.filter((_, i) => i !== index));
   };
 
+  const handleSubmit = async () => {
+    setError(null);
+
+    const parsed = resourceFormSchema.safeParse({
+      name,
+      type,
+      capacity,
+      location,
+      description,
+      status,
+      availabilityWindows,
+    });
+
+    if (!parsed.success) {
+      setError(firstZodMessage(parsed.error, "Please check your inputs."));
+      return;
+    }
+
+    const data = parsed.data;
+
+    setSubmitting(true);
+    try {
+      let imageUrl: string | null = null;
+      if (imageFile) {
+        setUploading(true);
+        const path = await uploadFile("facility-images", imageFile);
+        imageUrl = getPublicUrl("facility-images", path);
+        setUploading(false);
+      }
+
+      const body = {
+        name: data.name,
+        type: data.type,
+        capacity: data.capacity,
+        location: data.location,
+        description: data.description,
+        imageUrl,
+        status: data.status,
+        availabilityWindows: data.availabilityWindows.map((w) => ({
+          dayOfWeek: w.day,
+          startTime: w.startTime,
+          endTime: w.endTime,
+        })),
+      };
+
+      const created = await apiFetch<{ id: number }>("/api/resources", {
+        method: "POST",
+        body: JSON.stringify(body),
+      });
+      router.push(`/facilities/${created.id}/`);
+    } catch {
+      setUploading(false);
+      setError("Failed to create resource. Please check your inputs.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <div className="max-w-3xl mx-auto">
       <PageHeader
@@ -53,6 +135,12 @@ function NewFacilityContent() {
         subtitle="Create a new bookable facility or equipment"
         backHref="/facilities/"
       />
+
+      {error && (
+        <div className="mb-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-[13px] text-red-600">
+          {error}
+        </div>
+      )}
 
       <div className="space-y-6">
         {/* Basic Info */}
@@ -63,19 +151,25 @@ function NewFacilityContent() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="md:col-span-2">
               <label className="block text-[13px] font-medium text-foreground mb-1">
-                Name
+                Name <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
                 placeholder="e.g. Collaborative Lab Room 402"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
                 className="h-10 w-full rounded-lg border border-border bg-white px-3 text-[13px] outline-none focus:border-primary focus:ring-1 focus:ring-primary/30"
               />
             </div>
             <div>
               <label className="block text-[13px] font-medium text-foreground mb-1">
-                Type
+                Type <span className="text-red-500">*</span>
               </label>
-              <select className="h-10 w-full rounded-lg border border-border bg-white px-3 text-[13px] outline-none focus:border-primary">
+              <select
+                value={type}
+                onChange={(e) => setType(e.target.value)}
+                className="h-10 w-full rounded-lg border border-border bg-white px-3 text-[13px] outline-none focus:border-primary"
+              >
                 <option value="">Select type...</option>
                 {RESOURCE_TYPES.map((t) => (
                   <option key={t} value={t}>
@@ -90,17 +184,32 @@ function NewFacilityContent() {
               </label>
               <input
                 type="number"
+                min={1}
+                max={10000}
+                step={1}
                 placeholder="Number of people"
+                value={capacity}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  if (v === "" || /^\d+$/.test(v)) setCapacity(v);
+                }}
+                onKeyDown={(e) => {
+                  if (["e", "E", "+", "-", ".", ","].includes(e.key)) {
+                    e.preventDefault();
+                  }
+                }}
                 className="h-10 w-full rounded-lg border border-border bg-white px-3 text-[13px] outline-none focus:border-primary focus:ring-1 focus:ring-primary/30"
               />
             </div>
             <div className="md:col-span-2">
               <label className="block text-[13px] font-medium text-foreground mb-1">
-                Location
+                Location <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
                 placeholder="e.g. Engineering Block B, Floor 4"
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
                 className="h-10 w-full rounded-lg border border-border bg-white px-3 text-[13px] outline-none focus:border-primary focus:ring-1 focus:ring-primary/30"
               />
             </div>
@@ -111,7 +220,60 @@ function NewFacilityContent() {
               <textarea
                 rows={3}
                 placeholder="Describe the resource..."
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
                 className="w-full rounded-lg border border-border bg-white px-3 py-2 text-[13px] outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 resize-none"
+              />
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-[13px] font-medium text-foreground mb-1">
+                Image
+              </label>
+              {imagePreview ? (
+                <div className="relative w-full h-48 rounded-lg overflow-hidden border border-border">
+                  <img
+                    src={imagePreview}
+                    alt="Preview"
+                    className="w-full h-full object-cover"
+                  />
+                  <button
+                    type="button"
+                    onClick={removeImage}
+                    className="absolute top-2 right-2 rounded-full bg-black/50 p-1.5 text-white hover:bg-black/70 transition-colors"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    const file = e.dataTransfer.files[0];
+                    if (file) handleImageSelect(file);
+                  }}
+                  className="flex flex-col items-center justify-center w-full h-36 rounded-lg border-2 border-dashed border-border bg-gray-50 hover:border-primary hover:bg-gray-100 transition-colors cursor-pointer"
+                >
+                  <Upload size={24} className="text-muted mb-2" />
+                  <span className="text-[13px] text-muted">
+                    Click or drag an image to upload
+                  </span>
+                  <span className="text-[11px] text-muted mt-1">
+                    JPG, PNG, WebP up to 5MB
+                  </span>
+                </button>
+              )}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleImageSelect(file);
+                }}
               />
             </div>
             <div className="md:col-span-2">
@@ -124,7 +286,8 @@ function NewFacilityContent() {
                     type="radio"
                     name="status"
                     value="ACTIVE"
-                    defaultChecked
+                    checked={status === "ACTIVE"}
+                    onChange={(e) => setStatus(e.target.value)}
                     className="accent-primary"
                   />
                   Active
@@ -134,6 +297,8 @@ function NewFacilityContent() {
                     type="radio"
                     name="status"
                     value="OUT_OF_SERVICE"
+                    checked={status === "OUT_OF_SERVICE"}
+                    onChange={(e) => setStatus(e.target.value)}
                     className="accent-primary"
                   />
                   Out of Service
@@ -218,9 +383,12 @@ function NewFacilityContent() {
           </a>
           <button
             type="button"
-            className="rounded-lg bg-primary px-5 py-2.5 text-[13px] font-semibold text-white hover:bg-primary-dark transition-colors"
+            disabled={submitting}
+            onClick={handleSubmit}
+            className="flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-[13px] font-semibold text-white hover:bg-primary-dark transition-colors disabled:opacity-50"
           >
-            Create Resource
+            {submitting && <Loader2 size={14} className="animate-spin" />}
+            {uploading ? "Uploading image..." : submitting ? "Creating..." : "Create Resource"}
           </button>
         </div>
       </div>
@@ -231,7 +399,9 @@ function NewFacilityContent() {
 export default function NewFacilityPage() {
   return (
     <MainLayout>
-      <NewFacilityContent />
+      <RoleGuard allowedRoles={["MANAGER", "ADMIN"]}>
+        <NewFacilityContent />
+      </RoleGuard>
     </MainLayout>
   );
 }
