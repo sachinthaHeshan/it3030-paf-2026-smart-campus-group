@@ -96,7 +96,7 @@ public class BookingController {
         }
     }
 
-    @GetMapping("/resources")
+    @GetMapping("/bookings/resources")
     public ResponseEntity<List<ResourceResponse>> getActiveResources() {
         return ResponseEntity.ok(bookingService.getActiveResources());
     }

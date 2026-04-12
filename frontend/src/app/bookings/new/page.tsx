@@ -32,7 +32,7 @@ function NewBookingContent() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    apiFetch<ResourceOption[]>("/api/resources")
+    apiFetch<ResourceOption[]>("/api/bookings/resources")
       .then(setResources)
       .catch(() => setError("Failed to load resources"))
       .finally(() => setLoadingResources(false));

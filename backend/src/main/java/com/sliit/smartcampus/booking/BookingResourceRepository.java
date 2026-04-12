@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public class ResourceRepository {
+public class BookingResourceRepository {
 
     private final JdbcTemplate jdbcTemplate;
 
@@ -32,7 +32,7 @@ public class ResourceRepository {
             rs.getTime("end_time").toLocalTime(),
             rs.getTimestamp("created_at").toInstant());
 
-    public ResourceRepository(JdbcTemplate jdbcTemplate) {
+    public BookingResourceRepository(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
 

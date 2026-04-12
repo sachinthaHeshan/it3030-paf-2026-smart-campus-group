@@ -27,12 +27,12 @@ public class BookingService {
     private static final DateTimeFormatter ISO_FMT = DateTimeFormatter.ISO_INSTANT;
 
     private final BookingRepository bookingRepository;
-    private final ResourceRepository resourceRepository;
+    private final BookingResourceRepository resourceRepository;
     private final UserRepository userRepository;
     private final NotificationService notificationService;
 
     public BookingService(BookingRepository bookingRepository,
-                          ResourceRepository resourceRepository,
+                          BookingResourceRepository resourceRepository,
                           UserRepository userRepository,
                           NotificationService notificationService) {
         this.bookingRepository = bookingRepository;
