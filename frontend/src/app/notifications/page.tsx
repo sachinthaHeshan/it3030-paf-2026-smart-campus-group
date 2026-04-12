@@ -6,6 +6,7 @@ import MainLayout from "@/components/layout/MainLayout";
 import PageHeader from "@/components/ui/PageHeader";
 import { useNotifications } from "@/context/NotificationContext";
 import { apiFetch } from "@/lib/api";
+import ConfirmModal from "@/components/ui/ConfirmModal";
 import {
   CheckCircle,
   XCircle,
@@ -92,6 +93,7 @@ function NotificationsContent() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: number; event: React.MouseEvent } | null>(null);
 
   const fetchNotifications = useCallback(
     async (pageNum: number, append = false) => {
@@ -154,13 +156,15 @@ function NotificationsContent() {
     }
   };
 
-  const handleDelete = async (e: React.MouseEvent, id: number) => {
-    e.stopPropagation();
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    const id = deleteTarget.id;
     const deleted = notifications.find((n) => n.id === id);
     setNotifications((prev) => prev.filter((n) => n.id !== id));
     if (deleted && !deleted.isRead) {
       setUnreadCount((c) => Math.max(0, c - 1));
     }
+    setDeleteTarget(null);
     try {
       await apiFetch(`/api/notifications/${id}`, { method: "DELETE" });
     } catch {
@@ -254,7 +258,10 @@ function NotificationsContent() {
                     </span>
                     <button
                       type="button"
-                      onClick={(e) => handleDelete(e, notification.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDeleteTarget({ id: notification.id, event: e });
+                      }}
                       className="rounded-md p-1 text-muted hover:text-red-500 hover:bg-red-50 transition-colors"
                     >
                       <Trash2 size={14} />
@@ -282,6 +289,16 @@ function NotificationsContent() {
           )}
         </>
       )}
+
+      <ConfirmModal
+        open={deleteTarget !== null}
+        title="Delete Notification"
+        message="Are you sure you want to delete this notification?"
+        confirmLabel="Delete"
+        variant="danger"
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }

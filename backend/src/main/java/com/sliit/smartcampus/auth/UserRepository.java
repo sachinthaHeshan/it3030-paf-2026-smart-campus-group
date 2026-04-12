@@ -80,6 +80,13 @@ public class UserRepository {
                 name, now, id);
     }
 
+    public int updateProfile(Long id, String name, String profilePicture) {
+        Timestamp now = Timestamp.from(java.time.Instant.now());
+        return jdbcTemplate.update(
+                "UPDATE users SET name = ?, profile_picture = ?, updated_at = ? WHERE id = ?",
+                name, profilePicture, now, id);
+    }
+
     public List<User> findByRoles(List<String> roles) {
         String placeholders = String.join(",", roles.stream().map(r -> "?").toList());
         String sql = "SELECT * FROM users WHERE role IN (" + placeholders + ") AND is_active = TRUE";

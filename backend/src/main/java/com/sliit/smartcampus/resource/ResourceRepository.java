@@ -33,11 +33,12 @@ public class ResourceRepository {
         this.jdbcTemplate = jdbcTemplate;
     }
 
-    public List<Resource> findAll(String type, String status, String search, String location, int page, int size) {
+    public List<Resource> findAll(String type, String status, String search, String location,
+                                  Integer minCapacity, Integer maxCapacity, int page, int size) {
         StringBuilder sql = new StringBuilder("SELECT * FROM resources WHERE 1=1");
         List<Object> params = new ArrayList<>();
 
-        appendFilters(sql, params, type, status, search, location);
+        appendFilters(sql, params, type, status, search, location, minCapacity, maxCapacity);
 
         sql.append(" ORDER BY created_at DESC LIMIT ? OFFSET ?");
         params.add(size);
@@ -46,11 +47,12 @@ public class ResourceRepository {
         return jdbcTemplate.query(sql.toString(), ROW_MAPPER, params.toArray());
     }
 
-    public long count(String type, String status, String search, String location) {
+    public long count(String type, String status, String search, String location,
+                      Integer minCapacity, Integer maxCapacity) {
         StringBuilder sql = new StringBuilder("SELECT COUNT(*) FROM resources WHERE 1=1");
         List<Object> params = new ArrayList<>();
 
-        appendFilters(sql, params, type, status, search, location);
+        appendFilters(sql, params, type, status, search, location, minCapacity, maxCapacity);
 
         Long count = jdbcTemplate.queryForObject(sql.toString(), Long.class, params.toArray());
         return count != null ? count : 0;
@@ -103,11 +105,18 @@ public class ResourceRepository {
     }
 
     public int deleteById(Long id) {
+        jdbcTemplate.update(
+                "DELETE FROM ticket_comments WHERE ticket_id IN (SELECT id FROM tickets WHERE resource_id = ?)", id);
+        jdbcTemplate.update(
+                "DELETE FROM ticket_attachments WHERE ticket_id IN (SELECT id FROM tickets WHERE resource_id = ?)", id);
+        jdbcTemplate.update("DELETE FROM tickets WHERE resource_id = ?", id);
+        jdbcTemplate.update("DELETE FROM bookings WHERE resource_id = ?", id);
         return jdbcTemplate.update("DELETE FROM resources WHERE id = ?", id);
     }
 
     private void appendFilters(StringBuilder sql, List<Object> params,
-                               String type, String status, String search, String location) {
+                               String type, String status, String search, String location,
+                               Integer minCapacity, Integer maxCapacity) {
         if (type != null && !type.isBlank()) {
             sql.append(" AND type = ?");
             params.add(type);
@@ -125,6 +134,14 @@ public class ResourceRepository {
         if (location != null && !location.isBlank()) {
             sql.append(" AND LOWER(location) LIKE ?");
             params.add("%" + location.toLowerCase() + "%");
+        }
+        if (minCapacity != null) {
+            sql.append(" AND capacity >= ?");
+            params.add(minCapacity);
+        }
+        if (maxCapacity != null) {
+            sql.append(" AND capacity <= ?");
+            params.add(maxCapacity);
         }
     }
 }

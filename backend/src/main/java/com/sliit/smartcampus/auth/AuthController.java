@@ -2,6 +2,7 @@ package com.sliit.smartcampus.auth;
 
 import com.sliit.smartcampus.auth.dto.AuthResponse;
 import com.sliit.smartcampus.auth.dto.GoogleAuthRequest;
+import com.sliit.smartcampus.auth.dto.UpdateProfileRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -33,5 +34,14 @@ public class AuthController {
         Long userId = Long.parseLong(authentication.getName());
         AuthResponse.UserDto user = authService.getCurrentUser(userId);
         return ResponseEntity.ok(user);
+    }
+
+    @PutMapping("/me")
+    public ResponseEntity<AuthResponse.UserDto> updateProfile(
+            Authentication authentication,
+            @RequestBody UpdateProfileRequest request) {
+        Long userId = Long.parseLong(authentication.getName());
+        AuthResponse.UserDto updated = authService.updateProfile(userId, request);
+        return ResponseEntity.ok(updated);
     }
 }

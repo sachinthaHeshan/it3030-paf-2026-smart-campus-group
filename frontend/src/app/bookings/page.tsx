@@ -7,6 +7,7 @@ import { apiFetch } from "@/lib/api";
 import MainLayout from "@/components/layout/MainLayout";
 import PageHeader from "@/components/ui/PageHeader";
 import StatusBadge from "@/components/ui/StatusBadge";
+import ConfirmModal from "@/components/ui/ConfirmModal";
 import { Plus, Search, Check, X, Loader2 } from "lucide-react";
 
 interface BookingRecord {
@@ -35,6 +36,9 @@ function BookingsContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<number | null>(null);
+  const [cancelTarget, setCancelTarget] = useState<number | null>(null);
+  const [rejectTarget, setRejectTarget] = useState<number | null>(null);
+  const [errorModal, setErrorModal] = useState<string | null>(null);
 
   const fetchMyBookings = useCallback(async () => {
     const data = await apiFetch<BookingRecord[]>("/api/bookings/my");
@@ -71,37 +75,40 @@ function BookingsContent() {
       });
       await fetchData();
     } catch {
-      alert("Failed to approve booking");
+      setErrorModal("Failed to approve booking");
     } finally {
       setActionLoading(null);
     }
   };
 
-  const handleReject = async (id: number) => {
-    const reason = prompt("Rejection reason (required):");
-    if (!reason) return;
-    setActionLoading(id);
+  const confirmReject = async (reason?: string) => {
+    if (!rejectTarget || !reason?.trim()) return;
+    setActionLoading(rejectTarget);
     try {
-      await apiFetch(`/api/bookings/${id}/review`, {
+      await apiFetch(`/api/bookings/${rejectTarget}/review`, {
         method: "PUT",
-        body: JSON.stringify({ status: "REJECTED", reviewReason: reason }),
+        body: JSON.stringify({ status: "REJECTED", reviewReason: reason.trim() }),
       });
+      setRejectTarget(null);
       await fetchData();
     } catch {
-      alert("Failed to reject booking");
+      setRejectTarget(null);
+      setErrorModal("Failed to reject booking");
     } finally {
       setActionLoading(null);
     }
   };
 
-  const handleCancel = async (id: number) => {
-    if (!confirm("Are you sure you want to cancel this booking?")) return;
-    setActionLoading(id);
+  const confirmCancel = async () => {
+    if (!cancelTarget) return;
+    setActionLoading(cancelTarget);
     try {
-      await apiFetch(`/api/bookings/${id}/cancel`, { method: "PUT" });
+      await apiFetch(`/api/bookings/${cancelTarget}/cancel`, { method: "PUT" });
+      setCancelTarget(null);
       await fetchData();
     } catch {
-      alert("Failed to cancel booking");
+      setCancelTarget(null);
+      setErrorModal("Failed to cancel booking");
     } finally {
       setActionLoading(null);
     }
@@ -314,7 +321,7 @@ function BookingsContent() {
                             <button
                               type="button"
                               disabled={isActioning}
-                              onClick={() => handleReject(booking.id)}
+                              onClick={() => setRejectTarget(booking.id)}
                               className="rounded p-1.5 text-red-600 hover:bg-red-50"
                               title="Reject"
                             >
@@ -328,7 +335,7 @@ function BookingsContent() {
                             <button
                               type="button"
                               disabled={isActioning}
-                              onClick={() => handleCancel(booking.id)}
+                              onClick={() => setCancelTarget(booking.id)}
                               className="rounded px-2 py-1 text-[12px] text-red-600 hover:bg-red-50"
                             >
                               Cancel
@@ -343,6 +350,38 @@ function BookingsContent() {
           </tbody>
         </table>
       </div>
+
+      <ConfirmModal
+        open={cancelTarget !== null}
+        title="Cancel Booking"
+        message="Are you sure you want to cancel this booking?"
+        confirmLabel="Cancel Booking"
+        variant="danger"
+        loading={actionLoading !== null}
+        onConfirm={confirmCancel}
+        onCancel={() => setCancelTarget(null)}
+      />
+      <ConfirmModal
+        open={rejectTarget !== null}
+        title="Reject Booking"
+        message="Please provide a reason for rejecting this booking."
+        confirmLabel="Reject"
+        variant="danger"
+        loading={actionLoading !== null}
+        input={{ placeholder: "Rejection reason (required)", required: true }}
+        onConfirm={confirmReject}
+        onCancel={() => setRejectTarget(null)}
+      />
+      <ConfirmModal
+        open={errorModal !== null}
+        title="Error"
+        message={errorModal || ""}
+        confirmLabel="OK"
+        cancelLabel={null}
+        variant="danger"
+        onConfirm={() => setErrorModal(null)}
+        onCancel={() => setErrorModal(null)}
+      />
     </div>
   );
 }

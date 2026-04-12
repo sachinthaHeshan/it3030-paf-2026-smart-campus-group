@@ -218,6 +218,11 @@ public class TicketService {
         ticketRepository.findById(ticketId)
                 .orElseThrow(() -> new IllegalArgumentException("Ticket not found"));
 
+        long existingCount = attachmentRepository.findByTicketId(ticketId).size();
+        if (existingCount >= 3) {
+            throw new IllegalStateException("Maximum of 3 attachments per ticket allowed");
+        }
+
         TicketAttachment attachment = attachmentRepository.save(
                 ticketId, fileName, filePath, fileType, fileSize);
 

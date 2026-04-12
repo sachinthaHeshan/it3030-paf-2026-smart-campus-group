@@ -8,9 +8,7 @@ import { useNotifications } from "@/context/NotificationContext";
 import { apiFetch } from "@/lib/api";
 import StatusBadge from "@/components/ui/StatusBadge";
 import {
-  Search,
   Bell,
-  LayoutGrid,
   LogOut,
   User,
   Menu,
@@ -193,17 +191,6 @@ export default function TopBar({ onMenuClick }: TopBarProps) {
           </button>
         )}
         <h1 className="text-xl font-bold text-foreground">UniFlow</h1>
-        <div className="relative ml-4 hidden md:block">
-          <Search
-            size={16}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted"
-          />
-          <input
-            type="text"
-            placeholder="Search resources, events..."
-            className="h-9 w-72 rounded-lg border border-border bg-background pl-9 pr-4 text-[13px] text-foreground placeholder:text-muted outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-colors"
-          />
-        </div>
       </div>
 
       <div className="flex items-center gap-2 md:gap-4">
@@ -310,13 +297,6 @@ export default function TopBar({ onMenuClick }: TopBarProps) {
             </div>
           )}
         </div>
-
-        <button
-          type="button"
-          className="hidden md:block rounded-lg p-2 text-muted hover:bg-gray-100 transition-colors"
-        >
-          <LayoutGrid size={20} />
-        </button>
 
         {/* Avatar + Dropdown */}
         <div className="relative ml-1 md:ml-2" ref={dropdownRef}>

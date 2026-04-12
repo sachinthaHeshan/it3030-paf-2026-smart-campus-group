@@ -10,8 +10,6 @@ import {
   AlertTriangle,
   Users,
   Bell,
-  Settings,
-  HelpCircle,
   CirclePlus,
   UserCircle,
   X,
@@ -40,8 +38,6 @@ const navItems: NavItem[] = [
 
 const bottomItems: NavItem[] = [
   { label: "Profile", href: "/profile/", icon: UserCircle },
-  { label: "Settings", href: "/settings/", icon: Settings },
-  { label: "Help", href: "/help/", icon: HelpCircle },
 ];
 
 interface SidebarProps {

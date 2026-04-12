@@ -2,6 +2,7 @@ package com.sliit.smartcampus.booking;
 
 import com.sliit.smartcampus.auth.User;
 import com.sliit.smartcampus.auth.UserRepository;
+import com.sliit.smartcampus.booking.dto.AvailabilityResponse;
 import com.sliit.smartcampus.booking.dto.BookingResponse;
 import com.sliit.smartcampus.booking.dto.CreateBookingRequest;
 import com.sliit.smartcampus.booking.dto.ResourceResponse;
@@ -154,8 +155,11 @@ public class BookingService {
                 .toList();
     }
 
-    public List<BookingResponse> getAllBookings() {
-        return bookingRepository.findAll().stream()
+    public List<BookingResponse> getAllBookings(String status, Long resourceId,
+                                               String dateFrom, String dateTo) {
+        LocalDate from = dateFrom != null && !dateFrom.isBlank() ? LocalDate.parse(dateFrom) : null;
+        LocalDate to = dateTo != null && !dateTo.isBlank() ? LocalDate.parse(dateTo) : null;
+        return bookingRepository.findAll(status, resourceId, from, to).stream()
                 .map(this::toResponse)
                 .toList();
     }
@@ -164,6 +168,25 @@ public class BookingService {
         Booking booking = bookingRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Booking not found"));
         return toResponse(booking);
+    }
+
+    public List<BookingResponse> getSchedule(Long resourceId, String date) {
+        LocalDate localDate = LocalDate.parse(date);
+        return bookingRepository.findByResourceAndDate(resourceId, localDate).stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    public List<AvailabilityResponse> getAvailability(Long resourceId, String date) {
+        LocalDate localDate = LocalDate.parse(date);
+        String dayOfWeek = localDate.getDayOfWeek()
+                .getDisplayName(TextStyle.FULL, Locale.ENGLISH).toUpperCase();
+        return resourceRepository.findAvailabilityWindows(resourceId, dayOfWeek).stream()
+                .map(w -> new AvailabilityResponse(
+                        w.dayOfWeek(),
+                        w.startTime().format(TIME_FMT),
+                        w.endTime().format(TIME_FMT)))
+                .toList();
     }
 
     public List<ResourceResponse> getActiveResources() {

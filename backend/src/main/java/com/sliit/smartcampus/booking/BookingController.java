@@ -1,9 +1,11 @@
 package com.sliit.smartcampus.booking;
 
+import com.sliit.smartcampus.booking.dto.AvailabilityResponse;
 import com.sliit.smartcampus.booking.dto.BookingResponse;
 import com.sliit.smartcampus.booking.dto.CreateBookingRequest;
 import com.sliit.smartcampus.booking.dto.ResourceResponse;
 import com.sliit.smartcampus.booking.dto.ReviewBookingRequest;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -30,8 +32,12 @@ public class BookingController {
 
     @GetMapping("/bookings")
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
-    public ResponseEntity<List<BookingResponse>> getAllBookings() {
-        return ResponseEntity.ok(bookingService.getAllBookings());
+    public ResponseEntity<List<BookingResponse>> getAllBookings(
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) Long resourceId,
+            @RequestParam(required = false) String dateFrom,
+            @RequestParam(required = false) String dateTo) {
+        return ResponseEntity.ok(bookingService.getAllBookings(status, resourceId, dateFrom, dateTo));
     }
 
     @GetMapping("/bookings/{id}")
@@ -55,7 +61,7 @@ public class BookingController {
 
     @PostMapping("/bookings")
     public ResponseEntity<?> createBooking(
-            @RequestBody CreateBookingRequest request, Authentication auth) {
+            @Valid @RequestBody CreateBookingRequest request, Authentication auth) {
         Long userId = Long.parseLong(auth.getPrincipal().toString());
         try {
             BookingResponse booking = bookingService.createBooking(userId, request);
@@ -94,6 +100,20 @@ public class BookingController {
         } catch (IllegalStateException e) {
             return ResponseEntity.status(409).body(Map.of("error", e.getMessage()));
         }
+    }
+
+    @GetMapping("/bookings/schedule")
+    public ResponseEntity<List<BookingResponse>> getSchedule(
+            @RequestParam Long resourceId,
+            @RequestParam String date) {
+        return ResponseEntity.ok(bookingService.getSchedule(resourceId, date));
+    }
+
+    @GetMapping("/bookings/availability")
+    public ResponseEntity<List<AvailabilityResponse>> getAvailability(
+            @RequestParam Long resourceId,
+            @RequestParam String date) {
+        return ResponseEntity.ok(bookingService.getAvailability(resourceId, date));
     }
 
     @GetMapping("/bookings/resources")

@@ -10,6 +10,7 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -51,10 +52,29 @@ public class BookingRepository {
                 ROW_MAPPER, userId);
     }
 
-    public List<Booking> findAll() {
-        return jdbcTemplate.query(
-                "SELECT * FROM bookings ORDER BY created_at DESC",
-                ROW_MAPPER);
+    public List<Booking> findAll(String status, Long resourceId, LocalDate dateFrom, LocalDate dateTo) {
+        StringBuilder sql = new StringBuilder("SELECT * FROM bookings WHERE 1=1");
+        List<Object> params = new ArrayList<>();
+
+        if (status != null && !status.isBlank()) {
+            sql.append(" AND status = ?");
+            params.add(status);
+        }
+        if (resourceId != null) {
+            sql.append(" AND resource_id = ?");
+            params.add(resourceId);
+        }
+        if (dateFrom != null) {
+            sql.append(" AND booking_date >= ?");
+            params.add(Date.valueOf(dateFrom));
+        }
+        if (dateTo != null) {
+            sql.append(" AND booking_date <= ?");
+            params.add(Date.valueOf(dateTo));
+        }
+
+        sql.append(" ORDER BY created_at DESC");
+        return jdbcTemplate.query(sql.toString(), ROW_MAPPER, params.toArray());
     }
 
     public Booking save(Long resourceId, Long userId, LocalDate bookingDate,
@@ -95,6 +115,20 @@ public class BookingRepository {
         return jdbcTemplate.update(
                 "UPDATE bookings SET status = 'CANCELLED', updated_at = ? WHERE id = ?",
                 now, id);
+    }
+
+    public List<Booking> findByResourceAndDate(Long resourceId, LocalDate date) {
+        return jdbcTemplate.query(
+                """
+                SELECT * FROM bookings
+                WHERE resource_id = ?
+                  AND booking_date = ?
+                  AND status IN ('PENDING', 'APPROVED')
+                ORDER BY start_time ASC
+                """,
+                ROW_MAPPER,
+                resourceId,
+                Date.valueOf(date));
     }
 
     public List<Booking> findConflicting(Long resourceId, LocalDate bookingDate,
