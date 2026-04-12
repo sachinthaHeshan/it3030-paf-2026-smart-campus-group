@@ -1,13 +1,17 @@
 "use client";
 
+import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import MainLayout from "@/components/layout/MainLayout";
 import PageHeader from "@/components/ui/PageHeader";
 import StatusBadge from "@/components/ui/StatusBadge";
-import { Mail, Shield, LogOut } from "lucide-react";
+import { Mail, Shield, LogOut, Loader2 } from "lucide-react";
 
 function ProfileContent() {
-  const { user, logout } = useAuth();
+  const { user, logout, updateProfile } = useAuth();
+  const [name, setName] = useState(user?.name || "");
+  const [saving, setSaving] = useState(false);
+  const [saveMsg, setSaveMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -55,7 +59,11 @@ function ProfileContent() {
               </label>
               <input
                 type="text"
-                defaultValue={user?.name}
+                value={name}
+                onChange={(e) => {
+                  setName(e.target.value);
+                  setSaveMsg(null);
+                }}
                 className="h-10 w-full rounded-lg border border-border bg-white px-3 text-[13px] outline-none focus:border-primary focus:ring-1 focus:ring-primary/30"
               />
             </div>
@@ -73,11 +81,35 @@ function ProfileContent() {
                 Email is managed by Google OAuth and cannot be changed.
               </p>
             </div>
+            {saveMsg && (
+              <p
+                className={`text-[12px] ${saveMsg.type === "success" ? "text-green-600" : "text-red-600"}`}
+              >
+                {saveMsg.text}
+              </p>
+            )}
             <div className="flex justify-end">
               <button
                 type="button"
-                className="rounded-lg bg-primary px-5 py-2.5 text-[13px] font-semibold text-white hover:bg-primary-dark transition-colors"
+                disabled={saving || !name.trim()}
+                onClick={async () => {
+                  setSaving(true);
+                  setSaveMsg(null);
+                  try {
+                    await updateProfile(name.trim(), user?.profilePicture);
+                    setSaveMsg({ type: "success", text: "Profile updated successfully." });
+                  } catch (err) {
+                    setSaveMsg({
+                      type: "error",
+                      text: err instanceof Error ? err.message : "Failed to save",
+                    });
+                  } finally {
+                    setSaving(false);
+                  }
+                }}
+                className="flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-[13px] font-semibold text-white hover:bg-primary-dark transition-colors disabled:opacity-50"
               >
+                {saving && <Loader2 size={14} className="animate-spin" />}
                 Save Changes
               </button>
             </div>

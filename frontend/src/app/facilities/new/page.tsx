@@ -3,6 +3,7 @@
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import MainLayout from "@/components/layout/MainLayout";
+import RoleGuard from "@/components/RoleGuard";
 import PageHeader from "@/components/ui/PageHeader";
 import { apiFetch } from "@/lib/api";
 import { uploadFile, getPublicUrl } from "@/lib/supabase";
@@ -397,7 +398,9 @@ function NewFacilityContent() {
 export default function NewFacilityPage() {
   return (
     <MainLayout>
-      <NewFacilityContent />
+      <RoleGuard allowedRoles={["MANAGER", "ADMIN"]}>
+        <NewFacilityContent />
+      </RoleGuard>
     </MainLayout>
   );
 }

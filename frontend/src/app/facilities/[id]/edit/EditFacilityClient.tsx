@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import MainLayout from "@/components/layout/MainLayout";
+import RoleGuard from "@/components/RoleGuard";
 import PageHeader from "@/components/ui/PageHeader";
 import { apiFetch } from "@/lib/api";
 import { uploadFile, deleteFile, getPublicUrl } from "@/lib/supabase";
@@ -204,10 +205,12 @@ export default function EditFacilityClient() {
   if (loading) {
     return (
       <MainLayout>
-        <div className="flex items-center justify-center py-20">
-          <Loader2 size={24} className="animate-spin text-primary" />
-          <span className="ml-2 text-[14px] text-muted">Loading resource...</span>
-        </div>
+        <RoleGuard allowedRoles={["MANAGER", "ADMIN"]}>
+          <div className="flex items-center justify-center py-20">
+            <Loader2 size={24} className="animate-spin text-primary" />
+            <span className="ml-2 text-[14px] text-muted">Loading resource...</span>
+          </div>
+        </RoleGuard>
       </MainLayout>
     );
   }
@@ -215,18 +218,21 @@ export default function EditFacilityClient() {
   if (loadError) {
     return (
       <MainLayout>
-        <div className="max-w-3xl mx-auto">
-          <PageHeader title="Edit Resource" backHref="/facilities/" />
-          <div className="rounded-xl bg-red-50 border border-red-200 p-6 text-center">
-            <p className="text-[14px] text-red-600">{loadError}</p>
+        <RoleGuard allowedRoles={["MANAGER", "ADMIN"]}>
+          <div className="max-w-3xl mx-auto">
+            <PageHeader title="Edit Resource" backHref="/facilities/" />
+            <div className="rounded-xl bg-red-50 border border-red-200 p-6 text-center">
+              <p className="text-[14px] text-red-600">{loadError}</p>
+            </div>
           </div>
-        </div>
+        </RoleGuard>
       </MainLayout>
     );
   }
 
   return (
     <MainLayout>
+      <RoleGuard allowedRoles={["MANAGER", "ADMIN"]}>
       <div className="max-w-3xl mx-auto">
         <PageHeader
           title="Edit Resource"
@@ -456,6 +462,7 @@ export default function EditFacilityClient() {
           </div>
         </div>
       </div>
+      </RoleGuard>
     </MainLayout>
   );
 }

@@ -24,6 +24,7 @@ interface AuthContextType {
   isLoading: boolean;
   login: (googleCredential: string) => Promise<void>;
   logout: () => void;
+  updateProfile: (name: string, profilePicture?: string | null) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -74,8 +75,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   }, []);
 
+  const updateProfile = useCallback(
+    async (name: string, profilePicture?: string | null) => {
+      if (!token) throw new Error("Not authenticated");
+      const res = await fetch(`${config.backendUrl}/api/auth/me`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ name, profilePicture }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new Error(body?.message || "Failed to update profile");
+      }
+      const updated: AuthUser = await res.json();
+      setUser(updated);
+    },
+    [token],
+  );
+
   return (
-    <AuthContext.Provider value={{ user, token, isLoading, login, logout }}>
+    <AuthContext.Provider
+      value={{ user, token, isLoading, login, logout, updateProfile }}
+    >
       {children}
     </AuthContext.Provider>
   );

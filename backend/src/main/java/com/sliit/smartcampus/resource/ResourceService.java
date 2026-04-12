@@ -30,9 +30,10 @@ public class ResourceService {
     }
 
     public ResourceListResponse getResources(String type, String status, String search,
-                                             String location, int page, int size) {
-        List<Resource> resources = resourceRepository.findAll(type, status, search, location, page, size);
-        long totalElements = resourceRepository.count(type, status, search, location);
+                                             String location, Integer minCapacity, Integer maxCapacity,
+                                             int page, int size) {
+        List<Resource> resources = resourceRepository.findAll(type, status, search, location, minCapacity, maxCapacity, page, size);
+        long totalElements = resourceRepository.count(type, status, search, location, minCapacity, maxCapacity);
         int totalPages = (int) Math.ceil((double) totalElements / size);
 
         List<ResourceResponse> items = resources.stream()

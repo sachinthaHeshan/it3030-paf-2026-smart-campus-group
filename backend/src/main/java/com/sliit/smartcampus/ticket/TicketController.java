@@ -3,6 +3,7 @@ package com.sliit.smartcampus.ticket;
 import com.sliit.smartcampus.ticket.dto.*;
 import com.sliit.smartcampus.user.UserService;
 import com.sliit.smartcampus.user.dto.UserResponse;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -66,7 +67,7 @@ public class TicketController {
 
     @PostMapping
     public ResponseEntity<?> createTicket(
-            @RequestBody CreateTicketRequest request, Authentication auth) {
+            @Valid @RequestBody CreateTicketRequest request, Authentication auth) {
         Long userId = Long.parseLong(auth.getPrincipal().toString());
         try {
             TicketResponse ticket = ticketService.createTicket(userId, request);

@@ -70,6 +70,8 @@ function FacilitiesContent() {
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("All Types");
   const [locationFilter, setLocationFilter] = useState("");
+  const [minCapacity, setMinCapacity] = useState("");
+  const [maxCapacity, setMaxCapacity] = useState("");
   const [openMenu, setOpenMenu] = useState<number | null>(null);
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
@@ -84,6 +86,8 @@ function FacilitiesContent() {
       if (typeFilter !== "All Types") params.set("type", typeFilter);
       if (search.trim()) params.set("search", search.trim());
       if (locationFilter.trim()) params.set("location", locationFilter.trim());
+      if (minCapacity) params.set("minCapacity", minCapacity);
+      if (maxCapacity) params.set("maxCapacity", maxCapacity);
       params.set("page", String(page));
       params.set("size", "12");
 
@@ -98,7 +102,7 @@ function FacilitiesContent() {
     } finally {
       setLoading(false);
     }
-  }, [typeFilter, search, locationFilter, page]);
+  }, [typeFilter, search, locationFilter, minCapacity, maxCapacity, page]);
 
   useEffect(() => {
     fetchResources();
@@ -106,7 +110,7 @@ function FacilitiesContent() {
 
   useEffect(() => {
     setPage(0);
-  }, [typeFilter, search, locationFilter]);
+  }, [typeFilter, search, locationFilter, minCapacity, maxCapacity]);
 
   const handleDelete = async (id: number) => {
     if (!confirm("Are you sure you want to delete this resource?")) return;
@@ -172,6 +176,22 @@ function FacilitiesContent() {
           value={locationFilter}
           onChange={(e) => setLocationFilter(e.target.value)}
           className="h-10 w-full sm:w-44 rounded-lg border border-border bg-card-bg px-3 text-[13px] outline-none focus:border-primary"
+        />
+        <input
+          type="number"
+          placeholder="Min capacity"
+          value={minCapacity}
+          onChange={(e) => setMinCapacity(e.target.value)}
+          className="h-10 w-full sm:w-32 rounded-lg border border-border bg-card-bg px-3 text-[13px] outline-none focus:border-primary"
+          min={0}
+        />
+        <input
+          type="number"
+          placeholder="Max capacity"
+          value={maxCapacity}
+          onChange={(e) => setMaxCapacity(e.target.value)}
+          className="h-10 w-full sm:w-32 rounded-lg border border-border bg-card-bg px-3 text-[13px] outline-none focus:border-primary"
+          min={0}
         />
       </div>
 

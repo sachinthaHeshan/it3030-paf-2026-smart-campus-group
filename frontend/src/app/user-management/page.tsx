@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import MainLayout from "@/components/layout/MainLayout";
+import RoleGuard from "@/components/RoleGuard";
 import PageHeader from "@/components/ui/PageHeader";
 import StatusBadge from "@/components/ui/StatusBadge";
 import { apiFetch } from "@/lib/api";
@@ -383,7 +384,9 @@ function UserManagementContent() {
 export default function UserManagementPage() {
   return (
     <MainLayout>
-      <UserManagementContent />
+      <RoleGuard allowedRoles={["ADMIN"]}>
+        <UserManagementContent />
+      </RoleGuard>
     </MainLayout>
   );
 }

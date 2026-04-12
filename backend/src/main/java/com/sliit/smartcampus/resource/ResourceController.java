@@ -1,6 +1,7 @@
 package com.sliit.smartcampus.resource;
 
 import com.sliit.smartcampus.resource.dto.*;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -22,9 +23,11 @@ public class ResourceController {
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String search,
             @RequestParam(required = false) String location,
+            @RequestParam(required = false) Integer minCapacity,
+            @RequestParam(required = false) Integer maxCapacity,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "12") int size) {
-        return ResponseEntity.ok(resourceService.getResources(type, status, search, location, page, size));
+        return ResponseEntity.ok(resourceService.getResources(type, status, search, location, minCapacity, maxCapacity, page, size));
     }
 
     @GetMapping("/{id}")
@@ -40,7 +43,7 @@ public class ResourceController {
     @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
     public ResponseEntity<ResourceResponse> createResource(
             Authentication authentication,
-            @RequestBody CreateResourceRequest request) {
+            @Valid @RequestBody CreateResourceRequest request) {
         Long userId = Long.parseLong(authentication.getName());
         try {
             ResourceResponse response = resourceService.createResource(userId, request);

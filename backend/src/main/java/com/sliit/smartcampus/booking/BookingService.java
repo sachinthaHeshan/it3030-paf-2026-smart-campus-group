@@ -154,8 +154,11 @@ public class BookingService {
                 .toList();
     }
 
-    public List<BookingResponse> getAllBookings() {
-        return bookingRepository.findAll().stream()
+    public List<BookingResponse> getAllBookings(String status, Long resourceId,
+                                               String dateFrom, String dateTo) {
+        LocalDate from = dateFrom != null && !dateFrom.isBlank() ? LocalDate.parse(dateFrom) : null;
+        LocalDate to = dateTo != null && !dateTo.isBlank() ? LocalDate.parse(dateTo) : null;
+        return bookingRepository.findAll(status, resourceId, from, to).stream()
                 .map(this::toResponse)
                 .toList();
     }

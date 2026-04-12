@@ -86,6 +86,8 @@ export default function IncidentDetailClient() {
   const [selectedTechnician, setSelectedTechnician] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("IN_PROGRESS");
   const [resolutionNotes, setResolutionNotes] = useState("");
+  const [rejectionReason, setRejectionReason] = useState("");
+  const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [updating, setUpdating] = useState(false);
   const [actionError, setActionError] = useState("");
 
@@ -223,13 +225,19 @@ export default function IncidentDetailClient() {
   };
 
   const handleReject = async () => {
+    if (!rejectionReason.trim()) {
+      setActionError("Please provide a rejection reason");
+      return;
+    }
     setUpdating(true);
     setActionError("");
     try {
       await apiFetch(`/api/tickets/${ticketId}`, {
         method: "PATCH",
-        body: JSON.stringify({ status: "REJECTED", rejectionReason: "Rejected by manager" }),
+        body: JSON.stringify({ status: "REJECTED", rejectionReason: rejectionReason.trim() }),
       });
+      setShowRejectDialog(false);
+      setRejectionReason("");
       await loadTicket();
     } catch (err) {
       setActionError(err instanceof Error ? err.message : "Failed to reject ticket");
@@ -323,17 +331,34 @@ export default function IncidentDetailClient() {
                 <h2 className="text-[15px] font-semibold text-foreground mb-4">
                   Attachments ({ticket.attachments.length})
                 </h2>
-                <div className="flex gap-4">
-                  {ticket.attachments.map((att) => (
-                    <div
-                      key={att.id}
-                      className="w-32 h-32 rounded-lg bg-gray-100 border border-border flex items-center justify-center"
-                    >
-                      <span className="text-[11px] text-muted text-center px-2">
-                        {att.fileName}
-                      </span>
-                    </div>
-                  ))}
+                <div className="flex gap-4 flex-wrap">
+                  {ticket.attachments.map((att) => {
+                    const isImage = att.fileType?.startsWith("image/");
+                    return (
+                      <a
+                        key={att.id}
+                        href={att.filePath}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block w-32 h-32 rounded-lg bg-gray-100 border border-border overflow-hidden hover:ring-2 hover:ring-primary/40 transition-all"
+                      >
+                        {isImage ? (
+                          <img
+                            src={att.filePath}
+                            alt={att.fileName}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="flex flex-col items-center justify-center h-full px-2">
+                            <span className="text-[20px] mb-1">📎</span>
+                            <span className="text-[11px] text-muted text-center line-clamp-2">
+                              {att.fileName}
+                            </span>
+                          </div>
+                        )}
+                      </a>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -553,12 +578,46 @@ export default function IncidentDetailClient() {
                       </button>
                       <button
                         type="button"
-                        onClick={handleReject}
+                        onClick={() => setShowRejectDialog(true)}
                         disabled={updating}
                         className="w-full rounded-lg bg-danger px-3 py-2 text-[12px] font-medium text-white hover:bg-red-600 transition-colors disabled:opacity-50"
                       >
                         Reject Ticket
                       </button>
+                      {showRejectDialog && (
+                        <div className="mt-2 p-3 rounded-lg border border-red-200 bg-red-50 space-y-2">
+                          <label className="block text-[12px] font-medium text-red-700">
+                            Rejection Reason
+                          </label>
+                          <textarea
+                            rows={2}
+                            value={rejectionReason}
+                            onChange={(e) => setRejectionReason(e.target.value)}
+                            placeholder="Enter reason for rejection..."
+                            className="w-full rounded-lg border border-red-200 bg-white px-3 py-2 text-[12px] outline-none focus:border-red-400 resize-none"
+                          />
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              onClick={handleReject}
+                              disabled={updating || !rejectionReason.trim()}
+                              className="flex-1 rounded-lg bg-danger px-3 py-1.5 text-[11px] font-medium text-white hover:bg-red-600 disabled:opacity-50"
+                            >
+                              {updating ? "Rejecting..." : "Confirm Reject"}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setShowRejectDialog(false);
+                                setRejectionReason("");
+                              }}
+                              className="flex-1 rounded-lg border border-border px-3 py-1.5 text-[11px] font-medium text-foreground hover:bg-gray-50"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
