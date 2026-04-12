@@ -7,6 +7,7 @@ import MainLayout from "@/components/layout/MainLayout";
 import PageHeader from "@/components/ui/PageHeader";
 import StatusBadge from "@/components/ui/StatusBadge";
 import { apiFetch } from "@/lib/api";
+import ConfirmModal from "@/components/ui/ConfirmModal";
 import {
   Plus,
   Search,
@@ -77,6 +78,8 @@ function FacilitiesContent() {
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
   const [deleting, setDeleting] = useState<number | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<number | null>(null);
+  const [errorModal, setErrorModal] = useState<string | null>(null);
 
   const fetchResources = useCallback(async () => {
     setLoading(true);
@@ -112,15 +115,17 @@ function FacilitiesContent() {
     setPage(0);
   }, [typeFilter, search, locationFilter, minCapacity, maxCapacity]);
 
-  const handleDelete = async (id: number) => {
-    if (!confirm("Are you sure you want to delete this resource?")) return;
-    setDeleting(id);
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(deleteTarget);
     try {
-      await apiFetch(`/api/resources/${id}`, { method: "DELETE" });
+      await apiFetch(`/api/resources/${deleteTarget}`, { method: "DELETE" });
       setOpenMenu(null);
+      setDeleteTarget(null);
       fetchResources();
     } catch {
-      alert("Failed to delete resource.");
+      setDeleteTarget(null);
+      setErrorModal("Failed to delete resource.");
     } finally {
       setDeleting(null);
     }
@@ -288,7 +293,7 @@ function FacilitiesContent() {
                               <button
                                 type="button"
                                 disabled={deleting === resource.id}
-                                onClick={() => handleDelete(resource.id)}
+                                onClick={() => setDeleteTarget(resource.id)}
                                 className="flex w-full items-center gap-2 px-3 py-2 text-[13px] text-red-600 hover:bg-red-50 disabled:opacity-50"
                               >
                                 <Trash2 size={14} />{" "}
@@ -354,6 +359,27 @@ function FacilitiesContent() {
           )}
         </>
       )}
+
+      <ConfirmModal
+        open={deleteTarget !== null}
+        title="Delete Resource"
+        message="Are you sure you want to delete this resource? This action cannot be undone."
+        confirmLabel="Delete"
+        variant="danger"
+        loading={deleting !== null}
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteTarget(null)}
+      />
+      <ConfirmModal
+        open={errorModal !== null}
+        title="Error"
+        message={errorModal || ""}
+        confirmLabel="OK"
+        cancelLabel={null}
+        variant="danger"
+        onConfirm={() => setErrorModal(null)}
+        onCancel={() => setErrorModal(null)}
+      />
     </div>
   );
 }

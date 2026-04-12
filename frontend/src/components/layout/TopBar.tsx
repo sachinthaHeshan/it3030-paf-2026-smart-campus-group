@@ -9,7 +9,6 @@ import { apiFetch } from "@/lib/api";
 import StatusBadge from "@/components/ui/StatusBadge";
 import {
   Bell,
-  LayoutGrid,
   LogOut,
   User,
   Menu,
@@ -298,13 +297,6 @@ export default function TopBar({ onMenuClick }: TopBarProps) {
             </div>
           )}
         </div>
-
-        <button
-          type="button"
-          className="hidden md:block rounded-lg p-2 text-muted hover:bg-gray-100 transition-colors"
-        >
-          <LayoutGrid size={20} />
-        </button>
 
         {/* Avatar + Dropdown */}
         <div className="relative ml-1 md:ml-2" ref={dropdownRef}>

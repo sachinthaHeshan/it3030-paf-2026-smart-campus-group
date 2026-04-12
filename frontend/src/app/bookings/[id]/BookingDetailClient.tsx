@@ -7,6 +7,7 @@ import { apiFetch } from "@/lib/api";
 import MainLayout from "@/components/layout/MainLayout";
 import PageHeader from "@/components/ui/PageHeader";
 import StatusBadge from "@/components/ui/StatusBadge";
+import ConfirmModal from "@/components/ui/ConfirmModal";
 import {
   Calendar,
   Clock,
@@ -50,6 +51,8 @@ export default function BookingDetailClient() {
   const [error, setError] = useState<string | null>(null);
   const [reviewReason, setReviewReason] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [errorModal, setErrorModal] = useState<string | null>(null);
 
   const canReview = user?.role === "MANAGER" || user?.role === "ADMIN";
   const isOwner = booking?.userId === user?.id;
@@ -72,7 +75,7 @@ export default function BookingDetailClient() {
 
   const handleReview = async (status: "APPROVED" | "REJECTED") => {
     if (status === "REJECTED" && !reviewReason.trim()) {
-      alert("Please provide a reason for rejection");
+      setErrorModal("Please provide a reason for rejection");
       return;
     }
     setActionLoading(true);
@@ -87,20 +90,21 @@ export default function BookingDetailClient() {
       await fetchBooking();
       setReviewReason("");
     } catch {
-      alert(`Failed to ${status.toLowerCase()} booking`);
+      setErrorModal(`Failed to ${status.toLowerCase()} booking`);
     } finally {
       setActionLoading(false);
     }
   };
 
-  const handleCancel = async () => {
-    if (!confirm("Are you sure you want to cancel this booking?")) return;
+  const confirmCancel = async () => {
     setActionLoading(true);
     try {
       await apiFetch(`/api/bookings/${id}/cancel`, { method: "PUT" });
+      setShowCancelModal(false);
       await fetchBooking();
     } catch {
-      alert("Failed to cancel booking");
+      setShowCancelModal(false);
+      setErrorModal("Failed to cancel booking");
     } finally {
       setActionLoading(false);
     }
@@ -313,7 +317,7 @@ export default function BookingDetailClient() {
                 <button
                   type="button"
                   disabled={actionLoading}
-                  onClick={handleCancel}
+                  onClick={() => setShowCancelModal(true)}
                   className="rounded-lg border border-red-200 px-5 py-2.5 text-[13px] font-medium text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
                 >
                   Cancel Booking
@@ -321,6 +325,27 @@ export default function BookingDetailClient() {
               </div>
             )}
         </div>
+
+        <ConfirmModal
+          open={showCancelModal}
+          title="Cancel Booking"
+          message="Are you sure you want to cancel this booking?"
+          confirmLabel="Cancel Booking"
+          variant="danger"
+          loading={actionLoading}
+          onConfirm={confirmCancel}
+          onCancel={() => setShowCancelModal(false)}
+        />
+        <ConfirmModal
+          open={errorModal !== null}
+          title="Error"
+          message={errorModal || ""}
+          confirmLabel="OK"
+          cancelLabel={null}
+          variant="warning"
+          onConfirm={() => setErrorModal(null)}
+          onCancel={() => setErrorModal(null)}
+        />
       </div>
     </MainLayout>
   );

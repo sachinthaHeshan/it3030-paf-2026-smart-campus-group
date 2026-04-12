@@ -6,6 +6,7 @@ import RoleGuard from "@/components/RoleGuard";
 import PageHeader from "@/components/ui/PageHeader";
 import StatusBadge from "@/components/ui/StatusBadge";
 import { apiFetch } from "@/lib/api";
+import ConfirmModal from "@/components/ui/ConfirmModal";
 import { Search, Pencil, X, Check, Loader2 } from "lucide-react";
 
 const ROLES = ["USER", "TECHNICIAN", "MANAGER", "ADMIN"];
@@ -43,6 +44,7 @@ function UserManagementContent() {
     active: true,
   });
   const [saving, setSaving] = useState(false);
+  const [errorModal, setErrorModal] = useState<string | null>(null);
 
   const fetchUsers = useCallback(async () => {
     try {
@@ -87,7 +89,7 @@ function UserManagementContent() {
       setUsers((prev) => prev.map((u) => (u.id === editingId ? updated : u)));
       setEditingId(null);
     } catch {
-      alert("Failed to save changes");
+      setErrorModal("Failed to save changes");
     } finally {
       setSaving(false);
     }
@@ -377,6 +379,17 @@ function UserManagementContent() {
           </tbody>
         </table>
       </div>
+
+      <ConfirmModal
+        open={errorModal !== null}
+        title="Error"
+        message={errorModal || ""}
+        confirmLabel="OK"
+        cancelLabel={null}
+        variant="danger"
+        onConfirm={() => setErrorModal(null)}
+        onCancel={() => setErrorModal(null)}
+      />
     </div>
   );
 }

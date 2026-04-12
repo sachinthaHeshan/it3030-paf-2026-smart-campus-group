@@ -7,6 +7,7 @@ import { apiFetch } from "@/lib/api";
 import MainLayout from "@/components/layout/MainLayout";
 import PageHeader from "@/components/ui/PageHeader";
 import StatusBadge from "@/components/ui/StatusBadge";
+import ConfirmModal from "@/components/ui/ConfirmModal";
 import {
   MapPin,
   Tag,
@@ -90,6 +91,7 @@ export default function IncidentDetailClient() {
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [updating, setUpdating] = useState(false);
   const [actionError, setActionError] = useState("");
+  const [deleteCommentTarget, setDeleteCommentTarget] = useState<number | null>(null);
 
   const loadTicket = useCallback(async () => {
     try {
@@ -161,14 +163,16 @@ export default function IncidentDetailClient() {
     }
   };
 
-  const handleDeleteComment = async (commentId: number) => {
+  const confirmDeleteComment = async () => {
+    if (!deleteCommentTarget) return;
     try {
-      await apiFetch(`/api/tickets/${ticketId}/comments/${commentId}`, {
+      await apiFetch(`/api/tickets/${ticketId}/comments/${deleteCommentTarget}`, {
         method: "DELETE",
       });
+      setDeleteCommentTarget(null);
       await loadComments();
     } catch {
-      // ignore
+      setDeleteCommentTarget(null);
     }
   };
 
@@ -459,7 +463,7 @@ export default function IncidentDetailClient() {
                         {(c.userId === user?.id || isAdmin) && (
                           <button
                             type="button"
-                            onClick={() => handleDeleteComment(c.id)}
+                            onClick={() => setDeleteCommentTarget(c.id)}
                             className="text-[11px] text-muted hover:text-red-500 flex items-center gap-1"
                           >
                             <Trash2 size={11} /> Delete
@@ -650,6 +654,16 @@ export default function IncidentDetailClient() {
             </div>
           </div>
         </div>
+
+        <ConfirmModal
+          open={deleteCommentTarget !== null}
+          title="Delete Comment"
+          message="Are you sure you want to delete this comment? This action cannot be undone."
+          confirmLabel="Delete"
+          variant="danger"
+          onConfirm={confirmDeleteComment}
+          onCancel={() => setDeleteCommentTarget(null)}
+        />
       </div>
     </MainLayout>
   );

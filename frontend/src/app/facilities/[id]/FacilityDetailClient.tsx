@@ -7,6 +7,7 @@ import MainLayout from "@/components/layout/MainLayout";
 import PageHeader from "@/components/ui/PageHeader";
 import StatusBadge from "@/components/ui/StatusBadge";
 import { apiFetch } from "@/lib/api";
+import ConfirmModal from "@/components/ui/ConfirmModal";
 import {
   MapPin,
   Users,
@@ -57,6 +58,8 @@ export default function FacilityDetailClient() {
   const [error, setError] = useState<string | null>(null);
   const [statusLoading, setStatusLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [errorModal, setErrorModal] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -91,22 +94,21 @@ export default function FacilityDetailClient() {
       );
       setResource(updated);
     } catch {
-      alert("Failed to update status.");
+      setErrorModal("Failed to update status.");
     } finally {
       setStatusLoading(false);
     }
   };
 
-  const handleDelete = async () => {
+  const confirmDelete = async () => {
     if (!resource) return;
-    if (!confirm("Are you sure you want to delete this resource? This action cannot be undone."))
-      return;
     setDeleteLoading(true);
     try {
       await apiFetch(`/api/resources/${resource.id}`, { method: "DELETE" });
       router.push("/facilities/");
     } catch {
-      alert("Failed to delete resource.");
+      setShowDeleteModal(false);
+      setErrorModal("Failed to delete resource.");
       setDeleteLoading(false);
     }
   };
@@ -174,7 +176,7 @@ export default function FacilityDetailClient() {
                 <button
                   type="button"
                   disabled={deleteLoading}
-                  onClick={handleDelete}
+                  onClick={() => setShowDeleteModal(true)}
                   className="flex items-center gap-2 rounded-lg bg-danger px-4 py-2.5 text-[13px] font-semibold text-white hover:bg-red-600 transition-colors disabled:opacity-50"
                 >
                   <Trash2 size={14} />
@@ -298,6 +300,27 @@ export default function FacilityDetailClient() {
             </div>
           )}
         </div>
+
+        <ConfirmModal
+          open={showDeleteModal}
+          title="Delete Resource"
+          message="Are you sure you want to delete this resource? This action cannot be undone."
+          confirmLabel="Delete"
+          variant="danger"
+          loading={deleteLoading}
+          onConfirm={confirmDelete}
+          onCancel={() => setShowDeleteModal(false)}
+        />
+        <ConfirmModal
+          open={errorModal !== null}
+          title="Error"
+          message={errorModal || ""}
+          confirmLabel="OK"
+          cancelLabel={null}
+          variant="danger"
+          onConfirm={() => setErrorModal(null)}
+          onCancel={() => setErrorModal(null)}
+        />
       </div>
     </MainLayout>
   );
