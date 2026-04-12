@@ -32,7 +32,14 @@ export async function apiFetch<T = unknown>(
   }
 
   if (!res.ok) {
-    throw new Error(`API error: ${res.status}`);
+    let message = `API error: ${res.status}`;
+    try {
+      const body = await res.json();
+      if (body?.error) message = body.error;
+    } catch {
+      // no JSON body
+    }
+    throw new Error(message);
   }
 
   if (res.status === 204 || res.headers.get("content-length") === "0") {

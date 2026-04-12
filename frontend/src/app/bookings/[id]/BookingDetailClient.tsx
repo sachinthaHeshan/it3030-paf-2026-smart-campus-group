@@ -1,47 +1,155 @@
 "use client";
 
+import { useState, useEffect, useCallback } from "react";
+import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { apiFetch } from "@/lib/api";
 import MainLayout from "@/components/layout/MainLayout";
 import PageHeader from "@/components/ui/PageHeader";
 import StatusBadge from "@/components/ui/StatusBadge";
-import { Calendar, Clock, MapPin, Users, FileText, User } from "lucide-react";
+import {
+  Calendar,
+  Clock,
+  MapPin,
+  Users,
+  FileText,
+  User,
+  Loader2,
+} from "lucide-react";
 
-const mockBooking = {
-  id: 1,
-  resourceName: "Collaborative Lab Room 402",
-  resourceType: "LAB",
-  location: "Engineering Block B, Floor 4",
-  date: "2026-03-24",
-  startTime: "14:00",
-  endTime: "16:30",
-  purpose:
-    "Group project work session for the software engineering module. Will need whiteboard and projector access.",
-  expectedAttendees: 8,
-  status: "PENDING",
-  requestedBy: {
-    name: "Alex Rivera",
-    email: "alex.rivera@university.edu",
-    role: "USER",
-  },
-  createdAt: "2026-03-20T10:30:00Z",
-  reviewedBy: null,
-  reviewReason: null,
-};
+interface BookingDetail {
+  id: number;
+  resourceId: number;
+  resourceName: string;
+  resourceType: string;
+  resourceLocation: string;
+  userId: number;
+  userName: string;
+  userEmail: string;
+  bookingDate: string;
+  startTime: string;
+  endTime: string;
+  purpose: string;
+  expectedAttendees: number | null;
+  status: string;
+  reviewedBy: number | null;
+  reviewerName: string | null;
+  reviewReason: string | null;
+  reviewedAt: string | null;
+  createdAt: string;
+}
 
 export default function BookingDetailClient() {
+  const params = useParams();
+  const router = useRouter();
   const { user } = useAuth();
+  const id = params?.id as string;
+
+  const [booking, setBooking] = useState<BookingDetail | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [reviewReason, setReviewReason] = useState("");
+  const [actionLoading, setActionLoading] = useState(false);
+
   const canReview = user?.role === "MANAGER" || user?.role === "ADMIN";
-  const isOwner = true;
+  const isOwner = booking?.userId === user?.id;
+
+  const fetchBooking = useCallback(async () => {
+    try {
+      setError(null);
+      const data = await apiFetch<BookingDetail>(`/api/bookings/${id}`);
+      setBooking(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load booking");
+    } finally {
+      setLoading(false);
+    }
+  }, [id]);
+
+  useEffect(() => {
+    if (id) fetchBooking();
+  }, [id, fetchBooking]);
+
+  const handleReview = async (status: "APPROVED" | "REJECTED") => {
+    if (status === "REJECTED" && !reviewReason.trim()) {
+      alert("Please provide a reason for rejection");
+      return;
+    }
+    setActionLoading(true);
+    try {
+      await apiFetch(`/api/bookings/${id}/review`, {
+        method: "PUT",
+        body: JSON.stringify({
+          status,
+          reviewReason: reviewReason.trim() || null,
+        }),
+      });
+      await fetchBooking();
+      setReviewReason("");
+    } catch {
+      alert(`Failed to ${status.toLowerCase()} booking`);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleCancel = async () => {
+    if (!confirm("Are you sure you want to cancel this booking?")) return;
+    setActionLoading(true);
+    try {
+      await apiFetch(`/api/bookings/${id}/cancel`, { method: "PUT" });
+      await fetchBooking();
+    } catch {
+      alert("Failed to cancel booking");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <MainLayout>
+        <div className="flex items-center justify-center py-20">
+          <Loader2 size={24} className="animate-spin text-primary" />
+          <span className="ml-2 text-[14px] text-muted">
+            Loading booking...
+          </span>
+        </div>
+      </MainLayout>
+    );
+  }
+
+  if (error || !booking) {
+    return (
+      <MainLayout>
+        <div className="max-w-4xl mx-auto">
+          <PageHeader title="Booking Not Found" backHref="/bookings/" />
+          <div className="rounded-xl bg-red-50 border border-red-200 p-6 text-center">
+            <p className="text-[14px] text-red-700">
+              {error || "Booking not found"}
+            </p>
+            <button
+              type="button"
+              onClick={() => router.push("/bookings/")}
+              className="mt-3 rounded-lg bg-primary px-4 py-2 text-[13px] font-medium text-white hover:bg-primary-dark transition-colors"
+            >
+              Back to Bookings
+            </button>
+          </div>
+        </div>
+      </MainLayout>
+    );
+  }
 
   return (
     <MainLayout>
       <div className="max-w-4xl mx-auto">
         <PageHeader
-          title={`Booking #${mockBooking.id}`}
+          title={`Booking #${booking.id}`}
           backHref="/bookings/"
           actions={
             <div className="flex items-center gap-2">
-              <StatusBadge status={mockBooking.status} />
+              <StatusBadge status={booking.status} />
             </div>
           }
         />
@@ -58,10 +166,10 @@ export default function BookingDetailClient() {
                     Resource
                   </p>
                   <p className="text-[14px] font-medium text-foreground">
-                    {mockBooking.resourceName}
+                    {booking.resourceName}
                   </p>
                   <span className="mt-1 inline-block">
-                    <StatusBadge status={mockBooking.resourceType} />
+                    <StatusBadge status={booking.resourceType} />
                   </span>
                 </div>
                 <div>
@@ -70,7 +178,7 @@ export default function BookingDetailClient() {
                   </p>
                   <p className="text-[14px] text-foreground flex items-center gap-2">
                     <MapPin size={14} className="text-muted" />
-                    {mockBooking.location}
+                    {booking.resourceLocation}
                   </p>
                 </div>
                 <div>
@@ -79,7 +187,7 @@ export default function BookingDetailClient() {
                   </p>
                   <p className="text-[14px] text-foreground flex items-center gap-2">
                     <Calendar size={14} className="text-muted" />
-                    {mockBooking.date}
+                    {booking.bookingDate}
                   </p>
                 </div>
               </div>
@@ -90,7 +198,7 @@ export default function BookingDetailClient() {
                   </p>
                   <p className="text-[14px] text-foreground flex items-center gap-2">
                     <Clock size={14} className="text-muted" />
-                    {mockBooking.startTime} - {mockBooking.endTime}
+                    {booking.startTime} - {booking.endTime}
                   </p>
                 </div>
                 <div>
@@ -99,7 +207,8 @@ export default function BookingDetailClient() {
                   </p>
                   <p className="text-[14px] text-foreground flex items-center gap-2">
                     <Users size={14} className="text-muted" />
-                    {mockBooking.expectedAttendees} people
+                    {booking.expectedAttendees ?? "—"}{" "}
+                    {booking.expectedAttendees ? "people" : ""}
                   </p>
                 </div>
                 <div>
@@ -108,10 +217,10 @@ export default function BookingDetailClient() {
                   </p>
                   <p className="text-[14px] text-foreground flex items-center gap-2">
                     <User size={14} className="text-muted" />
-                    {mockBooking.requestedBy.name}
+                    {booking.userName}
                   </p>
                   <p className="text-[12px] text-muted ml-[22px]">
-                    {mockBooking.requestedBy.email}
+                    {booking.userEmail}
                   </p>
                 </div>
               </div>
@@ -124,13 +233,39 @@ export default function BookingDetailClient() {
                     size={14}
                     className="text-muted mt-0.5 shrink-0"
                   />
-                  {mockBooking.purpose}
+                  {booking.purpose}
                 </p>
               </div>
             </div>
           </div>
 
-          {canReview && mockBooking.status === "PENDING" && (
+          {booking.reviewerName && (
+            <div className="rounded-xl bg-card-bg border border-border shadow-sm p-6">
+              <h2 className="text-[15px] font-semibold text-foreground mb-4">
+                Review Information
+              </h2>
+              <div className="space-y-2 text-[14px]">
+                <p>
+                  <span className="text-muted">Reviewed by:</span>{" "}
+                  {booking.reviewerName}
+                </p>
+                {booking.reviewReason && (
+                  <p>
+                    <span className="text-muted">Reason:</span>{" "}
+                    {booking.reviewReason}
+                  </p>
+                )}
+                {booking.reviewedAt && (
+                  <p>
+                    <span className="text-muted">Reviewed at:</span>{" "}
+                    {new Date(booking.reviewedAt).toLocaleString()}
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {canReview && booking.status === "PENDING" && (
             <div className="rounded-xl bg-card-bg border border-border shadow-sm p-6">
               <h2 className="text-[15px] font-semibold text-foreground mb-4">
                 Review Booking
@@ -141,6 +276,8 @@ export default function BookingDetailClient() {
                 </label>
                 <textarea
                   rows={3}
+                  value={reviewReason}
+                  onChange={(e) => setReviewReason(e.target.value)}
                   placeholder="Provide a reason..."
                   className="w-full rounded-lg border border-border bg-white px-3 py-2 text-[13px] outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 resize-none"
                 />
@@ -148,13 +285,20 @@ export default function BookingDetailClient() {
               <div className="flex gap-3">
                 <button
                   type="button"
-                  className="flex items-center gap-2 rounded-lg bg-green-600 px-5 py-2.5 text-[13px] font-semibold text-white hover:bg-green-700 transition-colors"
+                  disabled={actionLoading}
+                  onClick={() => handleReview("APPROVED")}
+                  className="flex items-center gap-2 rounded-lg bg-green-600 px-5 py-2.5 text-[13px] font-semibold text-white hover:bg-green-700 transition-colors disabled:opacity-50"
                 >
+                  {actionLoading && (
+                    <Loader2 size={14} className="animate-spin" />
+                  )}
                   Approve
                 </button>
                 <button
                   type="button"
-                  className="flex items-center gap-2 rounded-lg bg-danger px-5 py-2.5 text-[13px] font-semibold text-white hover:bg-red-600 transition-colors"
+                  disabled={actionLoading}
+                  onClick={() => handleReview("REJECTED")}
+                  className="flex items-center gap-2 rounded-lg bg-danger px-5 py-2.5 text-[13px] font-semibold text-white hover:bg-red-600 transition-colors disabled:opacity-50"
                 >
                   Reject
                 </button>
@@ -163,12 +307,14 @@ export default function BookingDetailClient() {
           )}
 
           {isOwner &&
-            (mockBooking.status === "PENDING" ||
-              mockBooking.status === "APPROVED") && (
+            (booking.status === "PENDING" ||
+              booking.status === "APPROVED") && (
               <div className="flex justify-end">
                 <button
                   type="button"
-                  className="rounded-lg border border-red-200 px-5 py-2.5 text-[13px] font-medium text-red-600 hover:bg-red-50 transition-colors"
+                  disabled={actionLoading}
+                  onClick={handleCancel}
+                  className="rounded-lg border border-red-200 px-5 py-2.5 text-[13px] font-medium text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
                 >
                   Cancel Booking
                 </button>

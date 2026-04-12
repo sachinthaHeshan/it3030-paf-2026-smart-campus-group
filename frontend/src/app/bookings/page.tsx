@@ -1,79 +1,25 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
+import { apiFetch } from "@/lib/api";
 import MainLayout from "@/components/layout/MainLayout";
 import PageHeader from "@/components/ui/PageHeader";
 import StatusBadge from "@/components/ui/StatusBadge";
-import { Plus, Search, Check, X } from "lucide-react";
+import { Plus, Search, Check, X, Loader2 } from "lucide-react";
 
-const mockMyBookings = [
-  {
-    id: 1,
-    resourceName: "Collaborative Lab Room 402",
-    date: "2026-03-24",
-    startTime: "14:00",
-    endTime: "16:30",
-    purpose: "Group project work session",
-    status: "APPROVED",
-    requestedBy: "You",
-  },
-  {
-    id: 2,
-    resourceName: "Advanced VR Headset (Meta Quest 3)",
-    date: "2026-03-28",
-    startTime: "09:00",
-    endTime: "12:00",
-    purpose: "VR development testing",
-    status: "PENDING",
-    requestedBy: "You",
-  },
-  {
-    id: 3,
-    resourceName: "Main Lecture Hall A",
-    date: "2026-03-20",
-    startTime: "10:00",
-    endTime: "12:00",
-    purpose: "Guest lecture event",
-    status: "REJECTED",
-    requestedBy: "You",
-  },
-];
-
-const mockAllBookings = [
-  ...mockMyBookings,
-  {
-    id: 4,
-    resourceName: "Boardroom Beta",
-    date: "2026-03-25",
-    startTime: "13:00",
-    endTime: "14:30",
-    purpose: "Department meeting",
-    status: "PENDING",
-    requestedBy: "Dr. Sarah Chen",
-  },
-  {
-    id: 5,
-    resourceName: "Makerspace 3D Lab",
-    date: "2026-03-26",
-    startTime: "15:00",
-    endTime: "17:00",
-    purpose: "3D printing workshop",
-    status: "APPROVED",
-    requestedBy: "Mike Johnson",
-  },
-  {
-    id: 6,
-    resourceName: "Private Study Pods",
-    date: "2026-03-27",
-    startTime: "08:00",
-    endTime: "10:00",
-    purpose: "Exam preparation",
-    status: "PENDING",
-    requestedBy: "Lisa Wang",
-  },
-];
+interface BookingRecord {
+  id: number;
+  resourceName: string;
+  bookingDate: string;
+  startTime: string;
+  endTime: string;
+  purpose: string;
+  status: string;
+  userId: number;
+  userName: string;
+}
 
 const STATUS_OPTIONS = ["All", "PENDING", "APPROVED", "REJECTED", "CANCELLED"];
 
@@ -84,14 +30,126 @@ function BookingsContent() {
   const [statusFilter, setStatusFilter] = useState("All");
   const [search, setSearch] = useState("");
 
-  const bookings = activeTab === "all" ? mockAllBookings : mockMyBookings;
+  const [myBookings, setMyBookings] = useState<BookingRecord[]>([]);
+  const [allBookings, setAllBookings] = useState<BookingRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [actionLoading, setActionLoading] = useState<number | null>(null);
+
+  const fetchMyBookings = useCallback(async () => {
+    const data = await apiFetch<BookingRecord[]>("/api/bookings/my");
+    setMyBookings(data);
+  }, []);
+
+  const fetchAllBookings = useCallback(async () => {
+    if (!canViewAll) return;
+    const data = await apiFetch<BookingRecord[]>("/api/bookings");
+    setAllBookings(data);
+  }, [canViewAll]);
+
+  const fetchData = useCallback(async () => {
+    try {
+      setError(null);
+      await Promise.all([fetchMyBookings(), fetchAllBookings()]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load bookings");
+    } finally {
+      setLoading(false);
+    }
+  }, [fetchMyBookings, fetchAllBookings]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  const handleApprove = async (id: number) => {
+    setActionLoading(id);
+    try {
+      await apiFetch(`/api/bookings/${id}/review`, {
+        method: "PUT",
+        body: JSON.stringify({ status: "APPROVED", reviewReason: null }),
+      });
+      await fetchData();
+    } catch {
+      alert("Failed to approve booking");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleReject = async (id: number) => {
+    const reason = prompt("Rejection reason (required):");
+    if (!reason) return;
+    setActionLoading(id);
+    try {
+      await apiFetch(`/api/bookings/${id}/review`, {
+        method: "PUT",
+        body: JSON.stringify({ status: "REJECTED", reviewReason: reason }),
+      });
+      await fetchData();
+    } catch {
+      alert("Failed to reject booking");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleCancel = async (id: number) => {
+    if (!confirm("Are you sure you want to cancel this booking?")) return;
+    setActionLoading(id);
+    try {
+      await apiFetch(`/api/bookings/${id}/cancel`, { method: "PUT" });
+      await fetchData();
+    } catch {
+      alert("Failed to cancel booking");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const bookings = activeTab === "all" ? allBookings : myBookings;
   const filtered = bookings.filter((b) => {
     const matchesStatus = statusFilter === "All" || b.status === statusFilter;
     const matchesSearch =
-      b.resourceName.toLowerCase().includes(search.toLowerCase()) ||
-      b.purpose.toLowerCase().includes(search.toLowerCase());
+      b.resourceName?.toLowerCase().includes(search.toLowerCase()) ||
+      b.purpose?.toLowerCase().includes(search.toLowerCase());
     return matchesStatus && matchesSearch;
   });
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 size={24} className="animate-spin text-primary" />
+        <span className="ml-2 text-[14px] text-muted">
+          Loading bookings...
+        </span>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="max-w-[1200px] mx-auto">
+        <PageHeader
+          title="Bookings"
+          subtitle="View and manage resource bookings"
+        />
+        <div className="rounded-xl bg-red-50 border border-red-200 p-6 text-center">
+          <p className="text-[14px] text-red-700">{error}</p>
+          <button
+            type="button"
+            onClick={() => {
+              setLoading(true);
+              fetchData();
+            }}
+            className="mt-3 rounded-lg bg-primary px-4 py-2 text-[13px] font-medium text-white hover:bg-primary-dark transition-colors"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-[1200px] mx-auto">
@@ -163,19 +221,6 @@ function BookingsContent() {
             </option>
           ))}
         </select>
-        {activeTab === "all" && (
-          <>
-            <input
-              type="date"
-              className="h-10 rounded-lg border border-border bg-card-bg px-3 text-[13px] outline-none focus:border-primary"
-            />
-            <input
-              type="text"
-              placeholder="User..."
-              className="h-10 w-36 rounded-lg border border-border bg-card-bg px-3 text-[13px] outline-none focus:border-primary"
-            />
-          </>
-        )}
       </div>
 
       {/* Table */}
@@ -209,65 +254,92 @@ function BookingsContent() {
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {filtered.map((booking) => (
-              <tr key={booking.id} className="hover:bg-gray-50">
-                <td className="px-5 py-3.5">
-                  <Link
-                    href={`/bookings/${booking.id}/`}
-                    className="font-medium text-foreground hover:text-primary"
-                  >
-                    {booking.resourceName}
-                  </Link>
-                </td>
-                <td className="px-5 py-3.5 text-foreground">{booking.date}</td>
-                <td className="px-5 py-3.5 text-foreground">
-                  {booking.startTime} - {booking.endTime}
-                </td>
-                <td className="px-5 py-3.5 text-muted max-w-[200px] truncate">
-                  {booking.purpose}
-                </td>
-                {activeTab === "all" && (
-                  <td className="px-5 py-3.5 text-foreground">
-                    {booking.requestedBy}
-                  </td>
-                )}
-                <td className="px-5 py-3.5">
-                  <StatusBadge status={booking.status} />
-                </td>
-                <td className="px-5 py-3.5 text-right">
-                  <div className="flex items-center justify-end gap-1">
-                    {canViewAll && booking.status === "PENDING" && (
-                      <>
-                        <button
-                          type="button"
-                          className="rounded p-1.5 text-green-600 hover:bg-green-50"
-                          title="Approve"
-                        >
-                          <Check size={16} />
-                        </button>
-                        <button
-                          type="button"
-                          className="rounded p-1.5 text-red-600 hover:bg-red-50"
-                          title="Reject"
-                        >
-                          <X size={16} />
-                        </button>
-                      </>
-                    )}
-                    {booking.requestedBy === "You" &&
-                      (booking.status === "PENDING" ||
-                        booking.status === "APPROVED") && (
-                        <button
-                          type="button"
-                          className="rounded px-2 py-1 text-[12px] text-red-600 hover:bg-red-50"
-                        >
-                          Cancel
-                        </button>
-                      )}
-                  </div>
+            {filtered.length === 0 ? (
+              <tr>
+                <td
+                  colSpan={activeTab === "all" ? 7 : 6}
+                  className="px-5 py-8 text-center text-muted text-[13px]"
+                >
+                  No bookings found.
                 </td>
               </tr>
-            ))}
+            ) : (
+              filtered.map((booking) => {
+                const isOwner = booking.userId === user?.id;
+                const isActioning = actionLoading === booking.id;
+
+                return (
+                  <tr
+                    key={booking.id}
+                    className={`hover:bg-gray-50 ${isActioning ? "opacity-60" : ""}`}
+                  >
+                    <td className="px-5 py-3.5">
+                      <Link
+                        href={`/bookings/${booking.id}/`}
+                        className="font-medium text-foreground hover:text-primary"
+                      >
+                        {booking.resourceName}
+                      </Link>
+                    </td>
+                    <td className="px-5 py-3.5 text-foreground">
+                      {booking.bookingDate}
+                    </td>
+                    <td className="px-5 py-3.5 text-foreground">
+                      {booking.startTime} - {booking.endTime}
+                    </td>
+                    <td className="px-5 py-3.5 text-muted max-w-[200px] truncate">
+                      {booking.purpose}
+                    </td>
+                    {activeTab === "all" && (
+                      <td className="px-5 py-3.5 text-foreground">
+                        {booking.userName}
+                      </td>
+                    )}
+                    <td className="px-5 py-3.5">
+                      <StatusBadge status={booking.status} />
+                    </td>
+                    <td className="px-5 py-3.5 text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        {canViewAll && booking.status === "PENDING" && (
+                          <>
+                            <button
+                              type="button"
+                              disabled={isActioning}
+                              onClick={() => handleApprove(booking.id)}
+                              className="rounded p-1.5 text-green-600 hover:bg-green-50"
+                              title="Approve"
+                            >
+                              <Check size={16} />
+                            </button>
+                            <button
+                              type="button"
+                              disabled={isActioning}
+                              onClick={() => handleReject(booking.id)}
+                              className="rounded p-1.5 text-red-600 hover:bg-red-50"
+                              title="Reject"
+                            >
+                              <X size={16} />
+                            </button>
+                          </>
+                        )}
+                        {isOwner &&
+                          (booking.status === "PENDING" ||
+                            booking.status === "APPROVED") && (
+                            <button
+                              type="button"
+                              disabled={isActioning}
+                              onClick={() => handleCancel(booking.id)}
+                              className="rounded px-2 py-1 text-[12px] text-red-600 hover:bg-red-50"
+                            >
+                              Cancel
+                            </button>
+                          )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
           </tbody>
         </table>
       </div>
