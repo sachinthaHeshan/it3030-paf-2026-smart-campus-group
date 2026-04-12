@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@react-oauth/google": "^0.13.4",
+    "@supabase/supabase-js": "^2.103.0",
     "jwt-decode": "^4.0.0",
     "lucide-react": "^0.577.0",
     "next": "16.1.6",
