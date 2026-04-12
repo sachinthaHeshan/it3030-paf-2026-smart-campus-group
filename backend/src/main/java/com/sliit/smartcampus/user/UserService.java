@@ -70,6 +70,12 @@ public class UserService {
         return getUserById(id);
     }
 
+    public List<UserResponse> getTechnicians() {
+        return userRepository.findByRoles(List.of("TECHNICIAN")).stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
     private UserResponse toResponse(User user) {
         return new UserResponse(
                 user.id(),
