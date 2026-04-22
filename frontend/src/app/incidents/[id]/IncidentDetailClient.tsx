@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { apiFetch } from "@/lib/api";
+import { getPublicUrl } from "@/lib/supabase";
 import MainLayout from "@/components/layout/MainLayout";
 import PageHeader from "@/components/ui/PageHeader";
 import StatusBadge from "@/components/ui/StatusBadge";
@@ -29,7 +30,33 @@ import {
   UserCheck,
   ShieldCheck,
   FileText,
+  Download,
+  ChevronLeft,
+  ChevronRight,
+  X as XIcon,
+  Image as ImageIcon,
 } from "lucide-react";
+
+const IMAGE_EXT_REGEX = /\.(jpe?g|png|gif|webp|bmp|svg)$/i;
+
+function resolveAttachmentUrl(filePath: string): string {
+  if (!filePath) return "";
+  if (/^https?:\/\//i.test(filePath)) return filePath;
+  return getPublicUrl("ticket-attachments", filePath);
+}
+
+function isImageAttachment(att: { fileType?: string | null; fileName?: string | null }): boolean {
+  if (att.fileType && att.fileType.startsWith("image/")) return true;
+  if (att.fileName && IMAGE_EXT_REGEX.test(att.fileName)) return true;
+  return false;
+}
+
+function formatFileSize(bytes: number): string {
+  if (!bytes) return "";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
 
 interface TicketDetail {
   id: number;
@@ -175,6 +202,7 @@ export default function IncidentDetailClient() {
   const [updating, setUpdating] = useState(false);
   const [actionError, setActionError] = useState("");
   const [deleteCommentTarget, setDeleteCommentTarget] = useState<number | null>(null);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
   const loadTicket = useCallback(async () => {
     try {
@@ -203,6 +231,28 @@ export default function IncidentDetailClient() {
     };
     load();
   }, [loadTicket, loadComments]);
+
+  const imageAttachments = (ticket?.attachments ?? []).filter(isImageAttachment);
+  const hasLightbox = lightboxIndex !== null && imageAttachments[lightboxIndex];
+
+  useEffect(() => {
+    if (lightboxIndex === null) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setLightboxIndex(null);
+      if (e.key === "ArrowRight")
+        setLightboxIndex((i) =>
+          i === null ? null : (i + 1) % imageAttachments.length,
+        );
+      if (e.key === "ArrowLeft")
+        setLightboxIndex((i) =>
+          i === null
+            ? null
+            : (i - 1 + imageAttachments.length) % imageAttachments.length,
+        );
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [lightboxIndex, imageAttachments.length]);
 
   useEffect(() => {
     if (canManage) {
@@ -530,33 +580,61 @@ export default function IncidentDetailClient() {
             {ticket.attachments.length > 0 && (
               <div className="mt-5 pt-5 border-t border-border">
                 <p className="text-[11px] text-muted uppercase tracking-wide mb-3 flex items-center gap-1.5">
-                  <FileText size={12} />
+                  <ImageIcon size={12} />
                   Attachments ({ticket.attachments.length})
                 </p>
-                <div className="flex gap-3 flex-wrap">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                   {ticket.attachments.map((att) => {
-                    const isImage = att.fileType?.startsWith("image/");
+                    const isImage = isImageAttachment(att);
+                    const url = resolveAttachmentUrl(att.filePath);
+                    if (isImage) {
+                      const idx = imageAttachments.findIndex(
+                        (a) => a.id === att.id,
+                      );
+                      return (
+                        <button
+                          key={att.id}
+                          type="button"
+                          onClick={() => setLightboxIndex(idx)}
+                          className="group relative aspect-square rounded-lg bg-gray-50 border border-border overflow-hidden hover:ring-2 hover:ring-primary/50 hover:shadow-md transition-all"
+                          title={att.fileName}
+                        >
+                          <img
+                            src={url}
+                            alt={att.fileName}
+                            loading="lazy"
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          />
+                          <div className="absolute inset-x-0 bottom-0 bg-linear-to-t from-black/70 to-transparent px-2 py-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <p className="text-[10px] text-white truncate">
+                              {att.fileName}
+                            </p>
+                            {att.fileSize > 0 && (
+                              <p className="text-[9px] text-white/70">
+                                {formatFileSize(att.fileSize)}
+                              </p>
+                            )}
+                          </div>
+                        </button>
+                      );
+                    }
                     return (
                       <a
                         key={att.id}
-                        href={att.filePath}
+                        href={url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="block w-28 h-28 rounded-lg bg-gray-50 border border-border overflow-hidden hover:ring-2 hover:ring-primary/40 hover:shadow-md transition-all"
+                        className="aspect-square flex flex-col items-center justify-center rounded-lg bg-gray-50 border border-border px-3 py-2 hover:ring-2 hover:ring-primary/40 hover:shadow-md transition-all"
+                        title={att.fileName}
                       >
-                        {isImage ? (
-                          <img
-                            src={att.filePath}
-                            alt={att.fileName}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="flex flex-col items-center justify-center h-full px-2">
-                            <FileText size={20} className="text-muted mb-1" />
-                            <span className="text-[10px] text-muted text-center line-clamp-2">
-                              {att.fileName}
-                            </span>
-                          </div>
+                        <FileText size={24} className="text-muted mb-1.5" />
+                        <span className="text-[11px] text-foreground text-center line-clamp-2 break-all">
+                          {att.fileName}
+                        </span>
+                        {att.fileSize > 0 && (
+                          <span className="text-[10px] text-muted mt-0.5">
+                            {formatFileSize(att.fileSize)}
+                          </span>
                         )}
                       </a>
                     );
@@ -848,6 +926,90 @@ export default function IncidentDetailClient() {
           onConfirm={handleReject}
           onCancel={() => setShowRejectModal(false)}
         />
+
+        {hasLightbox && lightboxIndex !== null && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm"
+            onClick={() => setLightboxIndex(null)}
+          >
+            <button
+              type="button"
+              onClick={() => setLightboxIndex(null)}
+              className="absolute top-4 right-4 h-10 w-10 rounded-full bg-white/10 text-white hover:bg-white/20 flex items-center justify-center transition-colors"
+              aria-label="Close"
+            >
+              <XIcon size={20} />
+            </button>
+
+            <a
+              href={resolveAttachmentUrl(imageAttachments[lightboxIndex].filePath)}
+              download={imageAttachments[lightboxIndex].fileName}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="absolute top-4 right-16 h-10 w-10 rounded-full bg-white/10 text-white hover:bg-white/20 flex items-center justify-center transition-colors"
+              aria-label="Open original"
+              title="Open original"
+            >
+              <Download size={18} />
+            </a>
+
+            {imageAttachments.length > 1 && (
+              <>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setLightboxIndex(
+                      (lightboxIndex - 1 + imageAttachments.length) %
+                        imageAttachments.length,
+                    );
+                  }}
+                  className="absolute left-4 h-12 w-12 rounded-full bg-white/10 text-white hover:bg-white/20 flex items-center justify-center transition-colors"
+                  aria-label="Previous"
+                >
+                  <ChevronLeft size={24} />
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setLightboxIndex(
+                      (lightboxIndex + 1) % imageAttachments.length,
+                    );
+                  }}
+                  className="absolute right-4 h-12 w-12 rounded-full bg-white/10 text-white hover:bg-white/20 flex items-center justify-center transition-colors"
+                  aria-label="Next"
+                >
+                  <ChevronRight size={24} />
+                </button>
+              </>
+            )}
+
+            <div
+              className="relative max-w-[92vw] max-h-[88vh] flex flex-col items-center"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <img
+                src={resolveAttachmentUrl(
+                  imageAttachments[lightboxIndex].filePath,
+                )}
+                alt={imageAttachments[lightboxIndex].fileName}
+                className="max-w-[92vw] max-h-[80vh] object-contain rounded-lg shadow-2xl"
+              />
+              <div className="mt-3 text-center text-white/90">
+                <p className="text-[13px] font-medium">
+                  {imageAttachments[lightboxIndex].fileName}
+                </p>
+                <p className="text-[11px] text-white/60 mt-0.5">
+                  {lightboxIndex + 1} of {imageAttachments.length}
+                  {imageAttachments[lightboxIndex].fileSize > 0 &&
+                    ` \u00B7 ${formatFileSize(imageAttachments[lightboxIndex].fileSize)}`}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </MainLayout>
   );

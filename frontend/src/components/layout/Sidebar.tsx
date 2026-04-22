@@ -13,6 +13,7 @@ import {
   CirclePlus,
   UserCircle,
   X,
+  History,
 } from "lucide-react";
 
 interface NavItem {
@@ -32,6 +33,12 @@ const navItems: NavItem[] = [
     label: "User Management",
     href: "/user-management/",
     icon: Users,
+    roles: ["ADMIN"],
+  },
+  {
+    label: "Activity Log",
+    href: "/activity-log/",
+    icon: History,
     roles: ["ADMIN"],
   },
 ];

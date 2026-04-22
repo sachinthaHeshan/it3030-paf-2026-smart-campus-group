@@ -113,6 +113,7 @@ function NewIncidentContent() {
         }),
       });
 
+      const failedUploads: string[] = [];
       for (const att of attachments) {
         try {
           const filePath = await uploadFile("ticket-attachments", att.file);
@@ -125,9 +126,18 @@ function NewIncidentContent() {
               fileSize: att.file.size,
             }),
           });
-        } catch {
-          // attachment upload failure is non-fatal
+        } catch (err) {
+          const reason = err instanceof Error ? err.message : "unknown error";
+          failedUploads.push(`${att.file.name} (${reason})`);
         }
+      }
+
+      if (failedUploads.length > 0) {
+        setError(
+          `Ticket created, but ${failedUploads.length} attachment(s) failed to upload: ${failedUploads.join(", ")}. Check that the "ticket-attachments" Supabase bucket exists and is public.`,
+        );
+        setSubmitting(false);
+        return;
       }
 
       router.push("/incidents/");

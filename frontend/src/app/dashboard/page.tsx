@@ -14,6 +14,7 @@ import {
   Ticket,
   Loader2,
   Building2,
+  BarChart3,
 } from "lucide-react";
 
 function formatDate(): string {
@@ -57,26 +58,44 @@ interface ResourceListResponse {
   resources: ResourceItem[];
 }
 
+interface PeakResource {
+  id: number;
+  name: string;
+  type: string;
+  location: string;
+  status: string;
+  bookingCount: number;
+  sharePercent: number;
+}
+
 function DashboardContent() {
   const { user } = useAuth();
   const firstName = user?.name?.split(" ")[0] || "User";
+  const isManagerOrAdmin = user?.role === "MANAGER" || user?.role === "ADMIN";
 
   const [bookings, setBookings] = useState<BookingItem[]>([]);
   const [tickets, setTickets] = useState<TicketItem[]>([]);
   const [resources, setResources] = useState<ResourceItem[]>([]);
+  const [peakResources, setPeakResources] = useState<PeakResource[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const load = async () => {
       setLoading(true);
       try {
-        const [bookingData, ticketData, resourceData] = await Promise.all([
-          apiFetch<BookingItem[]>("/api/bookings/my").catch(() => []),
-          apiFetch<TicketItem[]>("/api/tickets/my").catch(() => []),
-          apiFetch<ResourceListResponse>("/api/resources?page=0&size=4").catch(
-            () => ({ resources: [] }),
-          ),
-        ]);
+        const [bookingData, ticketData, resourceData, peakData] =
+          await Promise.all([
+            apiFetch<BookingItem[]>("/api/bookings/my").catch(() => []),
+            apiFetch<TicketItem[]>("/api/tickets/my").catch(() => []),
+            apiFetch<ResourceListResponse>(
+              "/api/resources?page=0&size=4",
+            ).catch(() => ({ resources: [] })),
+            isManagerOrAdmin
+              ? apiFetch<PeakResource[]>(
+                  "/api/analytics/peak-resources?days=30&limit=5",
+                ).catch(() => [])
+              : Promise.resolve([] as PeakResource[]),
+          ]);
         setBookings(
           (bookingData || [])
             .filter((b) => b.status === "APPROVED" || b.status === "PENDING")
@@ -92,12 +111,15 @@ function DashboardContent() {
             .slice(0, 3),
         );
         setResources(resourceData?.resources?.slice(0, 4) || []);
+        setPeakResources(
+          (peakData || []).filter((r) => r.bookingCount > 0),
+        );
       } finally {
         setLoading(false);
       }
     };
     load();
-  }, []);
+  }, [isManagerOrAdmin]);
 
   if (loading) {
     return (
@@ -243,6 +265,76 @@ function DashboardContent() {
           </div>
         </div>
       </div>
+
+      {/* Peak Usage Analytics (MANAGER / ADMIN only) */}
+      {isManagerOrAdmin && peakResources.length > 0 && (
+        <div className="rounded-xl bg-card-bg border border-border shadow-sm">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+            <div className="flex items-center gap-2">
+              <BarChart3 size={18} className="text-muted" />
+              <div>
+                <h2 className="text-[15px] font-semibold text-foreground">
+                  Peak Booked Facilities (Last 30 Days)
+                </h2>
+                <p className="text-[12px] text-muted mt-0.5">
+                  Top {peakResources.length} by approved bookings
+                </p>
+              </div>
+            </div>
+            <Link
+              href="/facilities/"
+              className="text-[13px] font-medium text-primary hover:underline"
+            >
+              View All
+            </Link>
+          </div>
+          <ul className="divide-y divide-border">
+            {peakResources.map((r, idx) => (
+              <li
+                key={r.id}
+                className="flex items-center gap-4 px-6 py-3.5"
+              >
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-50 text-[12px] font-bold text-primary">
+                  {idx + 1}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-3">
+                    <Link
+                      href={`/facilities/${r.id}/`}
+                      className="text-[14px] font-semibold text-foreground hover:text-primary truncate"
+                    >
+                      {r.name}
+                    </Link>
+                    <span className="text-[12px] font-semibold text-foreground whitespace-nowrap">
+                      {r.bookingCount}{" "}
+                      <span className="font-normal text-muted">
+                        {r.bookingCount === 1 ? "booking" : "bookings"}
+                      </span>
+                    </span>
+                  </div>
+                  <p className="text-[11.5px] text-muted mt-0.5 truncate">
+                    {r.type.replace(/_/g, " ")} &bull; {r.location}
+                  </p>
+                  <div
+                    className="mt-2 h-1.5 w-full rounded-full bg-gray-100 overflow-hidden"
+                    role="progressbar"
+                    aria-valuenow={Math.round(r.sharePercent)}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                  >
+                    <div
+                      className="h-full rounded-full bg-primary"
+                      style={{
+                        width: `${Math.max(r.sharePercent, 4)}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {/* Resource Catalogue */}
       <div>
