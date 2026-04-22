@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { apiFetch } from "@/lib/api";
+import { makeBookingFormSchema, firstZodMessage } from "@/lib/schemas";
 import MainLayout from "@/components/layout/MainLayout";
 import PageHeader from "@/components/ui/PageHeader";
 import StatusBadge from "@/components/ui/StatusBadge";
@@ -280,19 +281,35 @@ function NewBookingContent() {
     return !isWithinWindows(startTime, endTime, availability);
   }, [startTime, endTime, availability]);
 
-  const hasBlocker = !!conflict || outsideAvailability;
+  const selectedResource = useMemo(
+    () => resources.find((r) => String(r.id) === resourceId) || null,
+    [resources, resourceId],
+  );
+
+  const overCapacity = useMemo(() => {
+    if (!selectedResource?.capacity) return false;
+    if (!expectedAttendees.trim() || !/^\d+$/.test(expectedAttendees.trim()))
+      return false;
+    return Number.parseInt(expectedAttendees, 10) > selectedResource.capacity;
+  }, [expectedAttendees, selectedResource]);
+
+  const hasBlocker = !!conflict || outsideAvailability || overCapacity;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
-    if (!resourceId || !bookingDate || !startTime || !endTime || !purpose.trim()) {
-      setError("Please fill in all required fields");
-      return;
-    }
+    const parsed = makeBookingFormSchema(selectedResource?.capacity).safeParse({
+      resourceId,
+      bookingDate,
+      startTime,
+      endTime,
+      purpose,
+      expectedAttendees,
+    });
 
-    if (endTime <= startTime) {
-      setError("End time must be after start time");
+    if (!parsed.success) {
+      setError(firstZodMessage(parsed.error, "Please check your inputs."));
       return;
     }
 
@@ -310,17 +327,19 @@ function NewBookingContent() {
       return;
     }
 
+    const data = parsed.data;
+
     setSubmitting(true);
     try {
       await apiFetch("/api/bookings", {
         method: "POST",
         body: JSON.stringify({
-          resourceId: Number(resourceId),
-          bookingDate,
-          startTime,
-          endTime,
-          purpose: purpose.trim(),
-          expectedAttendees: expectedAttendees ? Number(expectedAttendees) : null,
+          resourceId: Number(data.resourceId),
+          bookingDate: data.bookingDate,
+          startTime: data.startTime,
+          endTime: data.endTime,
+          purpose: data.purpose,
+          expectedAttendees: data.expectedAttendees,
         }),
       });
       router.push("/bookings/");
@@ -577,15 +596,46 @@ function NewBookingContent() {
           <div>
             <label className="block text-[13px] font-medium text-foreground mb-1">
               Expected Attendees
+              {selectedResource?.capacity ? (
+                <span className="ml-1 text-muted font-normal">
+                  (max {selectedResource.capacity})
+                </span>
+              ) : null}
             </label>
             <input
               type="number"
-              min="1"
+              min={1}
+              max={selectedResource?.capacity ?? undefined}
+              step={1}
               value={expectedAttendees}
-              onChange={(e) => setExpectedAttendees(e.target.value)}
+              onChange={(e) => {
+                const v = e.target.value;
+                if (v === "" || /^\d+$/.test(v)) setExpectedAttendees(v);
+              }}
+              onKeyDown={(e) => {
+                if (["e", "E", "+", "-", ".", ","].includes(e.key)) {
+                  e.preventDefault();
+                }
+              }}
               placeholder="Number of attendees"
-              className="h-10 w-full rounded-lg border border-border bg-white px-3 text-[13px] outline-none focus:border-primary focus:ring-1 focus:ring-primary/30"
+              className={`h-10 w-full rounded-lg border bg-white px-3 text-[13px] outline-none focus:ring-1 ${
+                overCapacity
+                  ? "border-red-400 focus:border-red-500 focus:ring-red-300"
+                  : "border-border focus:border-primary focus:ring-primary/30"
+              }`}
             />
+            {overCapacity && selectedResource?.capacity && (
+              <div className="mt-2 rounded-lg bg-red-50 border border-red-300 p-2.5 flex items-start gap-2">
+                <AlertTriangle
+                  size={14}
+                  className="text-red-600 shrink-0 mt-0.5"
+                />
+                <p className="text-[12px] text-red-700">
+                  Expected attendees ({expectedAttendees}) exceeds this
+                  resource&apos;s capacity ({selectedResource.capacity}).
+                </p>
+              </div>
+            )}
           </div>
         </div>
 

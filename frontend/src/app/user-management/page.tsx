@@ -6,10 +6,13 @@ import RoleGuard from "@/components/RoleGuard";
 import PageHeader from "@/components/ui/PageHeader";
 import StatusBadge from "@/components/ui/StatusBadge";
 import { apiFetch } from "@/lib/api";
+import {
+  USER_ROLES as ROLES,
+  userEditSchema,
+  firstZodMessage,
+} from "@/lib/schemas";
 import ConfirmModal from "@/components/ui/ConfirmModal";
 import { Search, Pencil, X, Check, Loader2 } from "lucide-react";
-
-const ROLES = ["USER", "TECHNICIAN", "MANAGER", "ADMIN"];
 
 interface UserRecord {
   id: number;
@@ -73,17 +76,20 @@ function UserManagementContent() {
 
   const saveEdit = async () => {
     if (!editingId) return;
+
+    const parsed = userEditSchema.safeParse(editState);
+    if (!parsed.success) {
+      setErrorModal(firstZodMessage(parsed.error, "Invalid user details."));
+      return;
+    }
+
     setSaving(true);
     try {
       const updated = await apiFetch<UserRecord>(
         `/api/admin/users/${editingId}`,
         {
           method: "PUT",
-          body: JSON.stringify({
-            name: editState.name,
-            role: editState.role,
-            active: editState.active,
-          }),
+          body: JSON.stringify(parsed.data),
         },
       );
       setUsers((prev) => prev.map((u) => (u.id === editingId ? updated : u)));

@@ -4,22 +4,16 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { apiFetch } from "@/lib/api";
 import { uploadFile } from "@/lib/supabase";
+import {
+  TICKET_CATEGORIES as CATEGORIES,
+  TICKET_PRIORITIES as PRIORITIES,
+  incidentFormSchema,
+  imageFileSchema,
+  firstZodMessage,
+} from "@/lib/schemas";
 import MainLayout from "@/components/layout/MainLayout";
 import PageHeader from "@/components/ui/PageHeader";
 import { Upload, X, Loader2 } from "lucide-react";
-
-const CATEGORIES = [
-  "ELECTRICAL",
-  "PLUMBING",
-  "IT_EQUIPMENT",
-  "FURNITURE",
-  "HVAC",
-  "CLEANING",
-  "SAFETY",
-  "OTHER",
-];
-
-const PRIORITIES = ["LOW", "MEDIUM", "HIGH", "CRITICAL"];
 
 interface ResourceOption {
   id: number;
@@ -61,11 +55,20 @@ function NewIncidentContent() {
     if (!files) return;
     const remaining = 3 - attachments.length;
     const selected = Array.from(files).slice(0, remaining);
-    const newAttachments = selected.map((file) => ({
-      file,
-      preview: file.name,
-    }));
-    setAttachments((prev) => [...prev, ...newAttachments]);
+
+    const validated: AttachmentFile[] = [];
+    for (const file of selected) {
+      const result = imageFileSchema.safeParse(file);
+      if (!result.success) {
+        setError(firstZodMessage(result.error, "Invalid attachment."));
+        if (fileInputRef.current) fileInputRef.current.value = "";
+        return;
+      }
+      validated.push({ file, preview: file.name });
+    }
+
+    setError("");
+    setAttachments((prev) => [...prev, ...validated]);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -74,26 +77,39 @@ function NewIncidentContent() {
   };
 
   const handleSubmit = async () => {
-    if (!title.trim() || !description.trim() || !category || !priority || !location.trim()) {
-      setError("Please fill in all required fields.");
+    setError("");
+
+    const parsed = incidentFormSchema.safeParse({
+      title,
+      description,
+      category,
+      priority,
+      location,
+      resourceId,
+      contactEmail,
+      contactPhone,
+    });
+
+    if (!parsed.success) {
+      setError(firstZodMessage(parsed.error, "Please check your inputs."));
       return;
     }
 
+    const data = parsed.data;
     setSubmitting(true);
-    setError("");
 
     try {
       const ticket = await apiFetch<{ id: number }>("/api/tickets", {
         method: "POST",
         body: JSON.stringify({
-          title: title.trim(),
-          description: description.trim(),
-          category,
-          priority,
-          location: location.trim(),
-          resourceId: resourceId ? Number(resourceId) : null,
-          contactEmail: contactEmail.trim() || null,
-          contactPhone: contactPhone.trim() || null,
+          title: data.title,
+          description: data.description,
+          category: data.category,
+          priority: data.priority,
+          location: data.location,
+          resourceId: data.resourceId,
+          contactEmail: data.contactEmail,
+          contactPhone: data.contactPhone,
         }),
       });
 

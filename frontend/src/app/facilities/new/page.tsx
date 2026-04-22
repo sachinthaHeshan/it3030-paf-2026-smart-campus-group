@@ -7,26 +7,14 @@ import RoleGuard from "@/components/RoleGuard";
 import PageHeader from "@/components/ui/PageHeader";
 import { apiFetch } from "@/lib/api";
 import { uploadFile, getPublicUrl } from "@/lib/supabase";
+import {
+  RESOURCE_TYPES,
+  DAYS_OF_WEEK,
+  resourceFormSchema,
+  imageFileSchema,
+  firstZodMessage,
+} from "@/lib/schemas";
 import { Plus, Trash2, Loader2, Upload, X } from "lucide-react";
-
-const RESOURCE_TYPES = [
-  "LECTURE_HALL",
-  "LAB",
-  "MEETING_ROOM",
-  "PROJECTOR",
-  "CAMERA",
-  "OTHER_EQUIPMENT",
-];
-
-const DAYS_OF_WEEK = [
-  "MONDAY",
-  "TUESDAY",
-  "WEDNESDAY",
-  "THURSDAY",
-  "FRIDAY",
-  "SATURDAY",
-  "SUNDAY",
-];
 
 interface AvailabilityRow {
   day: string;
@@ -54,12 +42,9 @@ function NewFacilityContent() {
   const [error, setError] = useState<string | null>(null);
 
   const handleImageSelect = (file: File) => {
-    if (!file.type.startsWith("image/")) {
-      setError("Please select an image file.");
-      return;
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      setError("Image must be less than 5MB.");
+    const result = imageFileSchema.safeParse(file);
+    if (!result.success) {
+      setError(firstZodMessage(result.error, "Invalid image file."));
       return;
     }
     setImageFile(file);
@@ -87,18 +72,23 @@ function NewFacilityContent() {
 
   const handleSubmit = async () => {
     setError(null);
-    if (!name.trim()) {
-      setError("Name is required.");
+
+    const parsed = resourceFormSchema.safeParse({
+      name,
+      type,
+      capacity,
+      location,
+      description,
+      status,
+      availabilityWindows,
+    });
+
+    if (!parsed.success) {
+      setError(firstZodMessage(parsed.error, "Please check your inputs."));
       return;
     }
-    if (!type) {
-      setError("Type is required.");
-      return;
-    }
-    if (!location.trim()) {
-      setError("Location is required.");
-      return;
-    }
+
+    const data = parsed.data;
 
     setSubmitting(true);
     try {
@@ -111,14 +101,14 @@ function NewFacilityContent() {
       }
 
       const body = {
-        name: name.trim(),
-        type,
-        capacity: capacity ? Number.parseInt(capacity, 10) : null,
-        location: location.trim(),
-        description: description.trim() || null,
+        name: data.name,
+        type: data.type,
+        capacity: data.capacity,
+        location: data.location,
+        description: data.description,
         imageUrl,
-        status,
-        availabilityWindows: availabilityWindows.map((w) => ({
+        status: data.status,
+        availabilityWindows: data.availabilityWindows.map((w) => ({
           dayOfWeek: w.day,
           startTime: w.startTime,
           endTime: w.endTime,
@@ -194,9 +184,20 @@ function NewFacilityContent() {
               </label>
               <input
                 type="number"
+                min={1}
+                max={10000}
+                step={1}
                 placeholder="Number of people"
                 value={capacity}
-                onChange={(e) => setCapacity(e.target.value)}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  if (v === "" || /^\d+$/.test(v)) setCapacity(v);
+                }}
+                onKeyDown={(e) => {
+                  if (["e", "E", "+", "-", ".", ","].includes(e.key)) {
+                    e.preventDefault();
+                  }
+                }}
                 className="h-10 w-full rounded-lg border border-border bg-white px-3 text-[13px] outline-none focus:border-primary focus:ring-1 focus:ring-primary/30"
               />
             </div>
