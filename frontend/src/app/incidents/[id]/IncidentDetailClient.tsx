@@ -363,7 +363,7 @@ export default function IncidentDetailClient() {
 
   return (
     <MainLayout>
-      <div className="max-w-5xl mx-auto">
+      <div className="max-w-4xl mx-auto">
         <PageHeader
           title={ticket.title}
           subtitle={`#${ticket.code}`}
@@ -410,57 +410,129 @@ export default function IncidentDetailClient() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Main Content */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Description Card */}
-            <div className="rounded-xl bg-card-bg border border-border shadow-sm p-6">
-              <p className="text-[14px] text-foreground leading-relaxed">
-                {ticket.description}
-              </p>
+        <div className="space-y-6">
+          {/* 1. Ticket Details */}
+          <div className="rounded-xl bg-card-bg border border-border shadow-sm p-6">
+            <h2 className="text-[14px] font-semibold text-foreground mb-4 flex items-center gap-2">
+              <FileText size={15} className="text-muted" />
+              Ticket Details
+            </h2>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 mt-5 pt-5 border-t border-border">
-                <div className="flex items-center gap-2.5 text-[13px]">
-                  <MapPin size={15} className="text-muted shrink-0" />
-                  <div>
-                    <p className="text-[11px] text-muted uppercase tracking-wide">Location</p>
-                    <p className="text-foreground font-medium">{ticket.location}</p>
+            <p className="text-[14px] text-foreground leading-relaxed whitespace-pre-line">
+              {ticket.description}
+            </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-4 mt-5 pt-5 border-t border-border">
+              <div className="flex items-start gap-2.5 text-[13px]">
+                <AlertTriangle size={15} className="text-muted shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-[11px] text-muted uppercase tracking-wide">Priority</p>
+                  <div className="mt-0.5">
+                    <StatusBadge status={ticket.priority} />
                   </div>
                 </div>
-                <div className="flex items-center gap-2.5 text-[13px]">
-                  <Tag size={15} className="text-muted shrink-0" />
-                  <div>
-                    <p className="text-[11px] text-muted uppercase tracking-wide">Category</p>
-                    <p className="text-foreground font-medium">{ticket.category.replace(/_/g, " ")}</p>
+              </div>
+              <div className="flex items-start gap-2.5 text-[13px]">
+                <ShieldCheck size={15} className="text-muted shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-[11px] text-muted uppercase tracking-wide">Status</p>
+                  <div className="mt-0.5">
+                    <StatusBadge status={ticket.status} />
                   </div>
                 </div>
-                <div className="flex items-center gap-2.5 text-[13px]">
-                  <User size={15} className="text-muted shrink-0" />
+              </div>
+              <div className="flex items-start gap-2.5 text-[13px]">
+                <UserCheck size={15} className="text-muted shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-[11px] text-muted uppercase tracking-wide">Assigned To</p>
+                  <p
+                    className={`font-medium mt-0.5 ${ticket.assignedToName ? "text-foreground" : "text-muted italic"}`}
+                  >
+                    {ticket.assignedToName || "Unassigned"}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-start gap-2.5 text-[13px]">
+                <MapPin size={15} className="text-muted shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-[11px] text-muted uppercase tracking-wide">Location</p>
+                  <p className="text-foreground font-medium">{ticket.location}</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-2.5 text-[13px]">
+                <Tag size={15} className="text-muted shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-[11px] text-muted uppercase tracking-wide">Category</p>
+                  <p className="text-foreground font-medium">
+                    {ticket.category.replace(/_/g, " ")}
+                  </p>
+                </div>
+              </div>
+              {ticket.resourceName && (
+                <div className="flex items-start gap-2.5 text-[13px]">
+                  <Building2 size={15} className="text-muted shrink-0 mt-0.5" />
                   <div>
-                    <p className="text-[11px] text-muted uppercase tracking-wide">Reported by</p>
-                    <p className="text-foreground font-medium">{ticket.createdByName}</p>
+                    <p className="text-[11px] text-muted uppercase tracking-wide">Resource</p>
+                    <p className="text-foreground font-medium">{ticket.resourceName}</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2.5 text-[13px]">
-                  <CalendarDays size={15} className="text-muted shrink-0" />
-                  <div>
-                    <p className="text-[11px] text-muted uppercase tracking-wide">Created</p>
-                    <p className="text-foreground font-medium">
-                      {new Date(ticket.createdAt).toLocaleDateString()}{" "}
-                      <span className="text-muted font-normal">({timeAgo(ticket.createdAt)})</span>
-                    </p>
-                  </div>
+              )}
+              <div className="flex items-start gap-2.5 text-[13px]">
+                <User size={15} className="text-muted shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-[11px] text-muted uppercase tracking-wide">Reported by</p>
+                  <p className="text-foreground font-medium">{ticket.createdByName}</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-2.5 text-[13px]">
+                <CalendarDays size={15} className="text-muted shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-[11px] text-muted uppercase tracking-wide">Created</p>
+                  <p className="text-foreground font-medium">
+                    {new Date(ticket.createdAt).toLocaleDateString()}{" "}
+                    <span className="text-muted font-normal">
+                      ({timeAgo(ticket.createdAt)})
+                    </span>
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-start gap-2.5 text-[13px]">
+                <Clock size={15} className="text-muted shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-[11px] text-muted uppercase tracking-wide">Last Updated</p>
+                  <p className="text-foreground font-medium">{timeAgo(ticket.updatedAt)}</p>
                 </div>
               </div>
             </div>
 
-            {/* Attachments */}
+            {(ticket.contactEmail || ticket.contactPhone) && (
+              <div className="mt-5 pt-5 border-t border-border">
+                <p className="text-[11px] text-muted uppercase tracking-wide mb-2">
+                  Contact Info
+                </p>
+                <div className="flex flex-wrap gap-x-6 gap-y-2">
+                  {ticket.contactEmail && (
+                    <div className="flex items-center gap-2 text-[13px]">
+                      <Mail size={14} className="text-muted" />
+                      <span className="text-foreground">{ticket.contactEmail}</span>
+                    </div>
+                  )}
+                  {ticket.contactPhone && (
+                    <div className="flex items-center gap-2 text-[13px]">
+                      <Phone size={14} className="text-muted" />
+                      <span className="text-foreground">{ticket.contactPhone}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             {ticket.attachments.length > 0 && (
-              <div className="rounded-xl bg-card-bg border border-border shadow-sm p-6">
-                <h2 className="text-[14px] font-semibold text-foreground mb-4 flex items-center gap-2">
-                  <FileText size={15} className="text-muted" />
+              <div className="mt-5 pt-5 border-t border-border">
+                <p className="text-[11px] text-muted uppercase tracking-wide mb-3 flex items-center gap-1.5">
+                  <FileText size={12} />
                   Attachments ({ticket.attachments.length})
-                </h2>
+                </p>
                 <div className="flex gap-3 flex-wrap">
                   {ticket.attachments.map((att) => {
                     const isImage = att.fileType?.startsWith("image/");
@@ -492,240 +564,35 @@ export default function IncidentDetailClient() {
                 </div>
               </div>
             )}
-
-            {/* Resolution Notes (editable, only when active and user can update) */}
-            {canUpdateStatus && !isClosed && (
-              <div className="rounded-xl bg-card-bg border border-border shadow-sm p-6">
-                <h2 className="text-[14px] font-semibold text-foreground mb-3 flex items-center gap-2">
-                  <Wrench size={15} className="text-muted" />
-                  Resolution Notes
-                </h2>
-                <textarea
-                  rows={3}
-                  value={resolutionNotes}
-                  onChange={(e) => setResolutionNotes(e.target.value)}
-                  placeholder="Add resolution notes before updating status..."
-                  className="w-full rounded-lg border border-border bg-white px-3 py-2.5 text-[13px] outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 resize-none"
-                />
-              </div>
-            )}
-
-            {/* Comments */}
-            <div className="rounded-xl bg-card-bg border border-border shadow-sm p-6">
-              <h2 className="text-[14px] font-semibold text-foreground mb-4 flex items-center gap-2">
-                <MessageSquare size={15} className="text-muted" />
-                Discussion ({comments.length})
-              </h2>
-
-              {comments.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-8 text-muted">
-                  <MessageSquare size={36} className="mb-2 opacity-30" />
-                  <p className="text-[13px]">No comments yet</p>
-                  <p className="text-[11px] mt-0.5">Be the first to add a comment</p>
-                </div>
-              ) : (
-                <div className="space-y-1">
-                  {comments.map((c) => {
-                    const isOwn = c.userId === user?.id;
-                    return (
-                      <div key={c.id} className="flex gap-3 group">
-                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary text-[12px] font-semibold mt-1">
-                          {c.userName?.charAt(0) || "?"}
-                        </div>
-                        <div className="flex-1 min-w-0 rounded-xl bg-gray-50 border border-border/60 px-4 py-3">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-[13px] font-semibold text-foreground">
-                              {c.userName}
-                            </span>
-                            <StatusBadge status={c.userRole} />
-                            <span className="text-[11px] text-muted">
-                              {timeAgo(c.createdAt)}
-                            </span>
-                            {c.isEdited && (
-                              <span className="text-[10px] text-muted italic">(edited)</span>
-                            )}
-                          </div>
-                          {editingCommentId === c.id ? (
-                            <div className="mt-2 flex gap-2">
-                              <input
-                                type="text"
-                                value={editingContent}
-                                onChange={(e) => setEditingContent(e.target.value)}
-                                className="flex-1 h-8 rounded-lg border border-border bg-white px-3 text-[13px] outline-none focus:border-primary"
-                                onKeyDown={(e) => {
-                                  if (e.key === "Enter") handleEditComment(c.id);
-                                  if (e.key === "Escape") setEditingCommentId(null);
-                                }}
-                              />
-                              <button
-                                type="button"
-                                onClick={() => handleEditComment(c.id)}
-                                className="rounded-lg bg-primary px-3 py-1 text-[12px] font-medium text-white hover:bg-primary-dark"
-                              >
-                                Save
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => setEditingCommentId(null)}
-                                className="rounded-lg border border-border px-3 py-1 text-[12px] text-muted hover:bg-gray-100"
-                              >
-                                Cancel
-                              </button>
-                            </div>
-                          ) : (
-                            <p className="text-[13px] text-foreground mt-1.5 leading-relaxed">{c.content}</p>
-                          )}
-                          {editingCommentId !== c.id && (isOwn || isAdmin) && (
-                            <div className="flex gap-3 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                              {isOwn && (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setEditingCommentId(c.id);
-                                    setEditingContent(c.content);
-                                  }}
-                                  className="text-[11px] text-muted hover:text-primary flex items-center gap-1"
-                                >
-                                  <Pencil size={11} /> Edit
-                                </button>
-                              )}
-                              <button
-                                type="button"
-                                onClick={() => setDeleteCommentTarget(c.id)}
-                                className="text-[11px] text-muted hover:text-red-500 flex items-center gap-1"
-                              >
-                                <Trash2 size={11} /> Delete
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-
-              {!isClosed && (
-                <div className="mt-5 pt-4 border-t border-border flex gap-3">
-                  <input
-                    type="text"
-                    value={comment}
-                    onChange={(e) => setComment(e.target.value)}
-                    placeholder="Write a comment..."
-                    className="flex-1 h-10 rounded-lg border border-border bg-white px-3 text-[13px] outline-none focus:border-primary focus:ring-1 focus:ring-primary/30"
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") handleSendComment();
-                    }}
-                  />
-                  <button
-                    type="button"
-                    onClick={handleSendComment}
-                    disabled={sendingComment || !comment.trim()}
-                    className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-[13px] font-medium text-white hover:bg-primary-dark transition-colors disabled:opacity-50"
-                  >
-                    {sendingComment ? (
-                      <Loader2 size={14} className="animate-spin" />
-                    ) : (
-                      <Send size={14} />
-                    )}
-                    Send
-                  </button>
-                </div>
-              )}
-            </div>
           </div>
 
-          {/* Sidebar */}
-          <div className="space-y-5">
-            {/* Ticket Info Card -- always first */}
-            <div className="rounded-xl bg-card-bg border border-border shadow-sm p-5">
-              <h3 className="text-[14px] font-semibold text-foreground mb-4">
-                Ticket Details
-              </h3>
-              <div className="space-y-4 text-[13px]">
-                <div className="flex items-start gap-3">
-                  <AlertTriangle size={15} className="text-muted shrink-0 mt-0.5" />
-                  <div className="flex-1">
-                    <p className="text-[11px] text-muted uppercase tracking-wide">Priority</p>
-                    <div className="mt-0.5"><StatusBadge status={ticket.priority} /></div>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <ShieldCheck size={15} className="text-muted shrink-0 mt-0.5" />
-                  <div className="flex-1">
-                    <p className="text-[11px] text-muted uppercase tracking-wide">Status</p>
-                    <div className="mt-0.5"><StatusBadge status={ticket.status} /></div>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <UserCheck size={15} className="text-muted shrink-0 mt-0.5" />
-                  <div className="flex-1">
-                    <p className="text-[11px] text-muted uppercase tracking-wide">Assigned To</p>
-                    <p className={`font-medium mt-0.5 ${ticket.assignedToName ? "text-foreground" : "text-muted italic"}`}>
-                      {ticket.assignedToName || "Unassigned"}
-                    </p>
-                  </div>
-                </div>
-                {ticket.resourceName && (
-                  <div className="flex items-start gap-3">
-                    <Building2 size={15} className="text-muted shrink-0 mt-0.5" />
-                    <div className="flex-1">
-                      <p className="text-[11px] text-muted uppercase tracking-wide">Resource</p>
-                      <p className="text-foreground font-medium mt-0.5">{ticket.resourceName}</p>
-                    </div>
-                  </div>
-                )}
-                {(ticket.contactEmail || ticket.contactPhone) && (
-                  <div className="pt-3 border-t border-border space-y-2">
-                    <p className="text-[11px] text-muted uppercase tracking-wide">Contact Info</p>
-                    {ticket.contactEmail && (
-                      <div className="flex items-center gap-2">
-                        <Mail size={13} className="text-muted" />
-                        <span className="text-foreground">{ticket.contactEmail}</span>
-                      </div>
-                    )}
-                    {ticket.contactPhone && (
-                      <div className="flex items-center gap-2">
-                        <Phone size={13} className="text-muted" />
-                        <span className="text-foreground">{ticket.contactPhone}</span>
-                      </div>
-                    )}
-                  </div>
-                )}
-                <div className="pt-3 border-t border-border">
-                  <div className="flex items-center gap-2 text-[11px] text-muted">
-                    <Clock size={12} />
-                    <span>Updated {timeAgo(ticket.updatedAt)}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
+          {/* 2. Action Center */}
+          {!isClosed && (canManage || canUpdateStatus) && (
+            <div className="rounded-xl bg-card-bg border border-border shadow-sm p-6">
+              <h2 className="text-[14px] font-semibold text-foreground mb-4 flex items-center gap-2">
+                <Wrench size={15} className="text-muted" />
+                Action Center
+              </h2>
 
-            {/* Actions Card -- only when ticket is active */}
-            {!isClosed && (canManage || canUpdateStatus) && (
-              <div className="rounded-xl bg-card-bg border border-border shadow-sm p-5">
-                <h3 className="text-[14px] font-semibold text-foreground mb-4">
-                  Actions
-                </h3>
+              {actionError && (
+                <div className="rounded-lg bg-red-50 border border-red-200 p-2.5 mb-4">
+                  <p className="text-[12px] text-red-600">{actionError}</p>
+                </div>
+              )}
 
-                {actionError && (
-                  <div className="rounded-lg bg-red-50 border border-red-200 p-2.5 mb-3">
-                    <p className="text-[12px] text-red-600">{actionError}</p>
-                  </div>
-                )}
-
-                <div className="space-y-4">
-                  {/* Assign Technician */}
-                  {canManage && (
-                    <div>
-                      <label className="flex items-center gap-1.5 text-[12px] font-medium text-muted mb-1.5">
-                        <UserCheck size={12} />
-                        Assign Technician
-                      </label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                {/* Assign Technician */}
+                {canManage && (
+                  <div>
+                    <label className="flex items-center gap-1.5 text-[12px] font-medium text-muted mb-1.5">
+                      <UserCheck size={12} />
+                      Assign Technician
+                    </label>
+                    <div className="flex gap-2">
                       <select
                         value={selectedTechnician}
                         onChange={(e) => setSelectedTechnician(e.target.value)}
-                        className="h-9 w-full rounded-lg border border-border bg-white px-2 text-[13px] outline-none focus:border-primary"
+                        className="h-9 flex-1 rounded-lg border border-border bg-white px-2 text-[13px] outline-none focus:border-primary"
                       >
                         <option value="">Select technician...</option>
                         {technicians.map((t) => (
@@ -734,30 +601,30 @@ export default function IncidentDetailClient() {
                           </option>
                         ))}
                       </select>
-                      {selectedTechnician && (
-                        <button
-                          type="button"
-                          onClick={handleAssign}
-                          disabled={updating}
-                          className="mt-2 w-full rounded-lg bg-primary px-3 py-2 text-[12px] font-medium text-white hover:bg-primary-dark transition-colors disabled:opacity-50"
-                        >
-                          {updating ? "Assigning..." : "Assign"}
-                        </button>
-                      )}
+                      <button
+                        type="button"
+                        onClick={handleAssign}
+                        disabled={updating || !selectedTechnician}
+                        className="rounded-lg bg-primary px-3 py-2 text-[12px] font-medium text-white hover:bg-primary-dark transition-colors disabled:opacity-50"
+                      >
+                        {updating ? "..." : "Assign"}
+                      </button>
                     </div>
-                  )}
+                  </div>
+                )}
 
-                  {/* Update Status */}
-                  {canUpdateStatus && (
-                    <div>
-                      <label className="flex items-center gap-1.5 text-[12px] font-medium text-muted mb-1.5">
-                        <Wrench size={12} />
-                        Update Status
-                      </label>
+                {/* Update Status */}
+                {canUpdateStatus && (
+                  <div>
+                    <label className="flex items-center gap-1.5 text-[12px] font-medium text-muted mb-1.5">
+                      <Wrench size={12} />
+                      Update Status
+                    </label>
+                    <div className="flex gap-2">
                       <select
                         value={selectedStatus}
                         onChange={(e) => setSelectedStatus(e.target.value)}
-                        className="h-9 w-full rounded-lg border border-border bg-white px-2 text-[13px] outline-none focus:border-primary"
+                        className="h-9 flex-1 rounded-lg border border-border bg-white px-2 text-[13px] outline-none focus:border-primary"
                       >
                         <option value="IN_PROGRESS">In Progress</option>
                         <option value="RESOLVED">Resolved</option>
@@ -766,37 +633,185 @@ export default function IncidentDetailClient() {
                         type="button"
                         onClick={handleUpdateStatus}
                         disabled={updating}
-                        className="mt-2 w-full rounded-lg bg-primary px-3 py-2 text-[12px] font-medium text-white hover:bg-primary-dark transition-colors disabled:opacity-50"
+                        className="rounded-lg bg-primary px-3 py-2 text-[12px] font-medium text-white hover:bg-primary-dark transition-colors disabled:opacity-50"
                       >
-                        {updating ? "Updating..." : "Update Status"}
+                        {updating ? "..." : "Update"}
                       </button>
                     </div>
-                  )}
+                  </div>
+                )}
+              </div>
 
-                  {/* Close & Reject */}
-                  {canManage && (
-                    <div className="pt-3 border-t border-border space-y-2">
-                      <button
-                        type="button"
-                        onClick={() => setShowCloseModal(true)}
-                        disabled={updating}
-                        className="w-full flex items-center justify-center gap-2 rounded-lg bg-green-600 px-3 py-2.5 text-[12px] font-medium text-white hover:bg-green-700 transition-colors disabled:opacity-50"
-                      >
-                        <CheckCircle size={14} />
-                        Close Ticket
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setShowRejectModal(true)}
-                        disabled={updating}
-                        className="w-full flex items-center justify-center gap-2 rounded-lg border border-red-200 px-3 py-2.5 text-[12px] font-medium text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
-                      >
-                        <XCircle size={14} />
-                        Reject Ticket
-                      </button>
-                    </div>
-                  )}
+              {/* Resolution Notes */}
+              {canUpdateStatus && (
+                <div className="mt-5">
+                  <label className="flex items-center gap-1.5 text-[12px] font-medium text-muted mb-1.5">
+                    <FileText size={12} />
+                    Resolution Notes
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={resolutionNotes}
+                    onChange={(e) => setResolutionNotes(e.target.value)}
+                    placeholder="Add resolution notes before marking as resolved..."
+                    className="w-full rounded-lg border border-border bg-white px-3 py-2.5 text-[13px] outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 resize-none"
+                  />
+                  <p className="text-[11px] text-muted mt-1">
+                    Notes will be saved when you update status to Resolved.
+                  </p>
                 </div>
+              )}
+
+              {/* Close & Reject */}
+              {canManage && (
+                <div className="mt-5 pt-5 border-t border-border flex flex-col sm:flex-row gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowCloseModal(true)}
+                    disabled={updating}
+                    className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-green-600 px-3 py-2.5 text-[12px] font-medium text-white hover:bg-green-700 transition-colors disabled:opacity-50"
+                  >
+                    <CheckCircle size={14} />
+                    Close Ticket
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowRejectModal(true)}
+                    disabled={updating}
+                    className="flex-1 flex items-center justify-center gap-2 rounded-lg border border-red-200 px-3 py-2.5 text-[12px] font-medium text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
+                  >
+                    <XCircle size={14} />
+                    Reject Ticket
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 3. Discussion */}
+          <div className="rounded-xl bg-card-bg border border-border shadow-sm p-6">
+            <h2 className="text-[14px] font-semibold text-foreground mb-4 flex items-center gap-2">
+              <MessageSquare size={15} className="text-muted" />
+              Discussion ({comments.length})
+            </h2>
+
+            {comments.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-8 text-muted">
+                <MessageSquare size={36} className="mb-2 opacity-30" />
+                <p className="text-[13px]">No comments yet</p>
+                <p className="text-[11px] mt-0.5">Be the first to add a comment</p>
+              </div>
+            ) : (
+              <div className="space-y-1">
+                {comments.map((c) => {
+                  const isOwn = c.userId === user?.id;
+                  return (
+                    <div key={c.id} className="flex gap-3 group">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary text-[12px] font-semibold mt-1">
+                        {c.userName?.charAt(0) || "?"}
+                      </div>
+                      <div className="flex-1 min-w-0 rounded-xl bg-gray-50 border border-border/60 px-4 py-3">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-[13px] font-semibold text-foreground">
+                            {c.userName}
+                          </span>
+                          <StatusBadge status={c.userRole} />
+                          <span className="text-[11px] text-muted">
+                            {timeAgo(c.createdAt)}
+                          </span>
+                          {c.isEdited && (
+                            <span className="text-[10px] text-muted italic">
+                              (edited)
+                            </span>
+                          )}
+                        </div>
+                        {editingCommentId === c.id ? (
+                          <div className="mt-2 flex gap-2">
+                            <input
+                              type="text"
+                              value={editingContent}
+                              onChange={(e) => setEditingContent(e.target.value)}
+                              className="flex-1 h-8 rounded-lg border border-border bg-white px-3 text-[13px] outline-none focus:border-primary"
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") handleEditComment(c.id);
+                                if (e.key === "Escape") setEditingCommentId(null);
+                              }}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleEditComment(c.id)}
+                              className="rounded-lg bg-primary px-3 py-1 text-[12px] font-medium text-white hover:bg-primary-dark"
+                            >
+                              Save
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setEditingCommentId(null)}
+                              className="rounded-lg border border-border px-3 py-1 text-[12px] text-muted hover:bg-gray-100"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        ) : (
+                          <p className="text-[13px] text-foreground mt-1.5 leading-relaxed">
+                            {c.content}
+                          </p>
+                        )}
+                        {editingCommentId !== c.id && (isOwn || isAdmin) && (
+                          <div className="flex gap-3 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            {isOwn && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEditingCommentId(c.id);
+                                  setEditingContent(c.content);
+                                }}
+                                className="text-[11px] text-muted hover:text-primary flex items-center gap-1"
+                              >
+                                <Pencil size={11} /> Edit
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => setDeleteCommentTarget(c.id)}
+                              className="text-[11px] text-muted hover:text-red-500 flex items-center gap-1"
+                            >
+                              <Trash2 size={11} /> Delete
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {!isClosed && (
+              <div className="mt-5 pt-4 border-t border-border flex gap-3">
+                <input
+                  type="text"
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                  placeholder="Write a comment..."
+                  className="flex-1 h-10 rounded-lg border border-border bg-white px-3 text-[13px] outline-none focus:border-primary focus:ring-1 focus:ring-primary/30"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleSendComment();
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={handleSendComment}
+                  disabled={sendingComment || !comment.trim()}
+                  className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-[13px] font-medium text-white hover:bg-primary-dark transition-colors disabled:opacity-50"
+                >
+                  {sendingComment ? (
+                    <Loader2 size={14} className="animate-spin" />
+                  ) : (
+                    <Send size={14} />
+                  )}
+                  Send
+                </button>
               </div>
             )}
           </div>
