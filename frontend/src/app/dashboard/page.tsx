@@ -15,6 +15,7 @@ import {
   Loader2,
   Building2,
   BarChart3,
+  Star,
 } from "lucide-react";
 
 function formatDate(): string {
@@ -68,6 +69,13 @@ interface PeakResource {
   sharePercent: number;
 }
 
+interface TechnicianRating {
+  technicianId: number;
+  technicianName: string;
+  avgStars: number;
+  ratingCount: number;
+}
+
 function DashboardContent() {
   const { user } = useAuth();
   const firstName = user?.name?.split(" ")[0] || "User";
@@ -77,13 +85,14 @@ function DashboardContent() {
   const [tickets, setTickets] = useState<TicketItem[]>([]);
   const [resources, setResources] = useState<ResourceItem[]>([]);
   const [peakResources, setPeakResources] = useState<PeakResource[]>([]);
+  const [techRatings, setTechRatings] = useState<TechnicianRating[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const load = async () => {
       setLoading(true);
       try {
-        const [bookingData, ticketData, resourceData, peakData] =
+        const [bookingData, ticketData, resourceData, peakData, ratingData] =
           await Promise.all([
             apiFetch<BookingItem[]>("/api/bookings/my").catch(() => []),
             apiFetch<TicketItem[]>("/api/tickets/my").catch(() => []),
@@ -95,6 +104,11 @@ function DashboardContent() {
                   "/api/analytics/peak-resources?days=30&limit=5",
                 ).catch(() => [])
               : Promise.resolve([] as PeakResource[]),
+            isManagerOrAdmin
+              ? apiFetch<TechnicianRating[]>(
+                  "/api/ratings/technicians?limit=5",
+                ).catch(() => [])
+              : Promise.resolve([] as TechnicianRating[]),
           ]);
         setBookings(
           (bookingData || [])
@@ -114,6 +128,7 @@ function DashboardContent() {
         setPeakResources(
           (peakData || []).filter((r) => r.bookingCount > 0),
         );
+        setTechRatings(ratingData || []);
       } finally {
         setLoading(false);
       }
@@ -332,6 +347,79 @@ function DashboardContent() {
                 </div>
               </li>
             ))}
+          </ul>
+        </div>
+      )}
+
+      {/* Technician Satisfaction (MANAGER / ADMIN only) */}
+      {isManagerOrAdmin && techRatings.length > 0 && (
+        <div className="rounded-xl bg-card-bg border border-border shadow-sm">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+            <div className="flex items-center gap-2">
+              <Star size={18} className="text-amber-500 fill-amber-500" />
+              <div>
+                <h2 className="text-[15px] font-semibold text-foreground">
+                  Technician Satisfaction
+                </h2>
+                <p className="text-[12px] text-muted mt-0.5">
+                  Top {techRatings.length} by average ticket rating
+                </p>
+              </div>
+            </div>
+          </div>
+          <ul className="divide-y divide-border">
+            {techRatings.map((t, idx) => {
+              const fillPct = (t.avgStars / 5) * 100;
+              return (
+                <li
+                  key={t.technicianId}
+                  className="flex items-center gap-4 px-6 py-3.5"
+                >
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-50 text-[12px] font-bold text-amber-600">
+                    {idx + 1}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-[14px] font-semibold text-foreground truncate">
+                        {t.technicianName}
+                      </p>
+                      <span className="text-[13px] font-semibold text-foreground whitespace-nowrap">
+                        {t.avgStars.toFixed(2)}
+                        <span className="text-muted font-normal">/5</span>
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 mt-1">
+                      <div
+                        className="relative inline-flex"
+                        aria-label={`${t.avgStars.toFixed(2)} of 5 stars`}
+                      >
+                        <span className="inline-flex items-center gap-0.5 text-gray-300">
+                          {[1, 2, 3, 4, 5].map((n) => (
+                            <Star key={n} size={14} className="fill-current" />
+                          ))}
+                        </span>
+                        <span
+                          className="absolute inset-0 inline-flex items-center gap-0.5 text-amber-400 overflow-hidden"
+                          style={{ width: `${fillPct}%` }}
+                        >
+                          {[1, 2, 3, 4, 5].map((n) => (
+                            <Star
+                              key={n}
+                              size={14}
+                              className="fill-current shrink-0"
+                            />
+                          ))}
+                        </span>
+                      </div>
+                      <span className="text-[11.5px] text-muted">
+                        ({t.ratingCount} rating
+                        {t.ratingCount === 1 ? "" : "s"})
+                      </span>
+                    </div>
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         </div>
       )}

@@ -1,5 +1,7 @@
 package com.sliit.smartcampus.ticket.dto;
 
+import com.sliit.smartcampus.rating.dto.RatingResponse;
+
 import java.time.Instant;
 import java.util.List;
 
@@ -28,5 +30,7 @@ public record TicketResponse(
         Instant closedAt,
         Instant createdAt,
         Instant updatedAt,
-        List<TicketAttachmentResponse> attachments) {
+        List<TicketAttachmentResponse> attachments,
+        RatingResponse rating,
+        boolean canRate) {
 }

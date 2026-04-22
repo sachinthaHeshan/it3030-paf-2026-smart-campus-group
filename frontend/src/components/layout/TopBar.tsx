@@ -22,6 +22,7 @@ import {
   CheckCheck,
   Loader2,
   BellOff,
+  Star,
 } from "lucide-react";
 
 const ROLE_LABELS: Record<string, string> = {
@@ -42,6 +43,7 @@ const NOTIFICATION_ICONS: Record<
   NEW_COMMENT: MessageSquare,
   NEW_BOOKING_REQUEST: Calendar,
   NEW_TICKET: AlertTriangle,
+  RATING_REQUEST: Star,
 };
 
 const NOTIFICATION_COLORS: Record<string, string> = {
@@ -52,6 +54,7 @@ const NOTIFICATION_COLORS: Record<string, string> = {
   NEW_COMMENT: "text-indigo-600 bg-indigo-50",
   NEW_BOOKING_REQUEST: "text-yellow-600 bg-yellow-50",
   NEW_TICKET: "text-orange-600 bg-orange-50",
+  RATING_REQUEST: "text-amber-600 bg-amber-50",
 };
 
 interface NotificationItem {

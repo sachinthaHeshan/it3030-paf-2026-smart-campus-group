@@ -35,6 +35,7 @@ import {
   ChevronRight,
   X as XIcon,
   Image as ImageIcon,
+  Star,
 } from "lucide-react";
 
 const IMAGE_EXT_REGEX = /\.(jpe?g|png|gif|webp|bmp|svg)$/i;
@@ -84,6 +85,18 @@ interface TicketDetail {
   createdAt: string;
   updatedAt: string;
   attachments: { id: number; fileName: string; filePath: string; fileType: string; fileSize: number }[];
+  rating: TicketRating | null;
+  canRate: boolean;
+}
+
+interface TicketRating {
+  stars: number;
+  comment: string | null;
+  ratedById: number;
+  ratedByName: string | null;
+  ratedAt: string;
+  technicianId: number | null;
+  technicianName: string | null;
 }
 
 interface TicketComment {
@@ -114,6 +127,28 @@ function timeAgo(dateStr: string) {
 }
 
 const LIFECYCLE_STEPS = ["OPEN", "IN_PROGRESS", "RESOLVED", "CLOSED"];
+
+function Stars({
+  value,
+  size = 16,
+  className = "text-amber-400",
+}: {
+  value: number;
+  size?: number;
+  className?: string;
+}) {
+  return (
+    <span className="inline-flex items-center gap-0.5">
+      {[1, 2, 3, 4, 5].map((n) => (
+        <Star
+          key={n}
+          size={size}
+          className={n <= value ? `${className} fill-current` : "text-gray-300"}
+        />
+      ))}
+    </span>
+  );
+}
 
 function StatusTimeline({ status }: { status: string }) {
   const isRejected = status === "REJECTED";
@@ -203,6 +238,12 @@ export default function IncidentDetailClient() {
   const [actionError, setActionError] = useState("");
   const [deleteCommentTarget, setDeleteCommentTarget] = useState<number | null>(null);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+
+  const [ratingStars, setRatingStars] = useState<number>(0);
+  const [ratingHover, setRatingHover] = useState<number>(0);
+  const [ratingComment, setRatingComment] = useState<string>("");
+  const [submittingRating, setSubmittingRating] = useState(false);
+  const [ratingError, setRatingError] = useState<string>("");
 
   const loadTicket = useCallback(async () => {
     try {
@@ -363,6 +404,33 @@ export default function IncidentDetailClient() {
     }
   };
 
+  const handleSubmitRating = async () => {
+    if (ratingStars < 1 || ratingStars > 5) {
+      setRatingError("Please select a rating from 1 to 5 stars.");
+      return;
+    }
+    setSubmittingRating(true);
+    setRatingError("");
+    try {
+      await apiFetch(`/api/tickets/${ticketId}/rating`, {
+        method: "POST",
+        body: JSON.stringify({
+          stars: ratingStars,
+          comment: ratingComment.trim() || null,
+        }),
+      });
+      setRatingStars(0);
+      setRatingComment("");
+      await loadTicket();
+    } catch (err) {
+      setRatingError(
+        err instanceof Error ? err.message : "Failed to submit rating",
+      );
+    } finally {
+      setSubmittingRating(false);
+    }
+  };
+
   const handleReject = async (reason?: string) => {
     if (!reason?.trim()) return;
     setUpdating(true);
@@ -458,6 +526,113 @@ export default function IncidentDetailClient() {
               )}
             </div>
           </div>
+        )}
+
+        {/* Resolution Rating */}
+        {ticket.rating ? (
+          <div className="rounded-xl bg-amber-50 border border-amber-200 p-4 mb-6">
+            <div className="flex items-start gap-3">
+              <Star
+                size={20}
+                className="text-amber-500 fill-amber-500 shrink-0 mt-0.5"
+              />
+              <div className="flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-[13px] font-semibold text-amber-900">
+                    Reporter rated this resolution
+                  </p>
+                  <Stars value={ticket.rating.stars} size={15} />
+                  <span className="text-[12px] font-semibold text-amber-900">
+                    {ticket.rating.stars}/5
+                  </span>
+                </div>
+                {ticket.rating.comment && (
+                  <p className="text-[13px] text-amber-900 mt-1.5 italic">
+                    &ldquo;{ticket.rating.comment}&rdquo;
+                  </p>
+                )}
+                <p className="text-[11px] text-amber-700 mt-1">
+                  by {ticket.rating.ratedByName || "reporter"}
+                  {ticket.rating.technicianName
+                    ? ` for ${ticket.rating.technicianName}`
+                    : ""}
+                  {" \u00B7 "}
+                  {timeAgo(ticket.rating.ratedAt)}
+                </p>
+              </div>
+            </div>
+          </div>
+        ) : (
+          ticket.canRate &&
+          user?.id === ticket.createdById && (
+            <div className="rounded-xl bg-card-bg border border-amber-200 shadow-sm p-5 mb-6">
+              <div className="flex items-center gap-2 mb-2">
+                <Star size={18} className="text-amber-500" />
+                <h3 className="text-[14px] font-semibold text-foreground">
+                  How was the support you received?
+                </h3>
+              </div>
+              <p className="text-[12.5px] text-muted mb-3">
+                Your feedback helps us improve. Rate the resolution from 1 to 5
+                stars
+                {ticket.assignedToName ? ` for ${ticket.assignedToName}` : ""}.
+              </p>
+
+              <div className="flex items-center gap-1 mb-4">
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <button
+                    key={n}
+                    type="button"
+                    onMouseEnter={() => setRatingHover(n)}
+                    onMouseLeave={() => setRatingHover(0)}
+                    onClick={() => setRatingStars(n)}
+                    className="p-0.5 transition-transform hover:scale-110"
+                    aria-label={`Rate ${n} star${n === 1 ? "" : "s"}`}
+                  >
+                    <Star
+                      size={28}
+                      className={
+                        n <= (ratingHover || ratingStars)
+                          ? "text-amber-400 fill-amber-400"
+                          : "text-gray-300"
+                      }
+                    />
+                  </button>
+                ))}
+                {ratingStars > 0 && (
+                  <span className="ml-2 text-[13px] font-medium text-foreground">
+                    {ratingStars}/5
+                  </span>
+                )}
+              </div>
+
+              <textarea
+                rows={2}
+                value={ratingComment}
+                onChange={(e) => setRatingComment(e.target.value)}
+                placeholder="Optional: leave a comment about the resolution..."
+                className="w-full rounded-lg border border-border bg-white px-3 py-2 text-[13px] outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 resize-none"
+              />
+
+              {ratingError && (
+                <p className="text-[12px] text-red-600 mt-2">{ratingError}</p>
+              )}
+
+              <div className="mt-3 flex justify-end">
+                <button
+                  type="button"
+                  onClick={handleSubmitRating}
+                  disabled={submittingRating || ratingStars === 0}
+                  className="flex items-center gap-2 rounded-lg bg-amber-500 px-4 py-2 text-[13px] font-semibold text-white hover:bg-amber-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {submittingRating && (
+                    <Loader2 size={14} className="animate-spin" />
+                  )}
+                  Submit Rating
+                </button>
+              </div>
+            </div>
+          )
         )}
 
         <div className="space-y-6">

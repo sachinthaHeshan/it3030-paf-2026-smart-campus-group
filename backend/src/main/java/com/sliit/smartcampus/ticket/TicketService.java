@@ -3,15 +3,23 @@ package com.sliit.smartcampus.ticket;
 import com.sliit.smartcampus.auth.User;
 import com.sliit.smartcampus.auth.UserRepository;
 import com.sliit.smartcampus.notification.NotificationService;
+import com.sliit.smartcampus.rating.TicketRatingRepository;
+import com.sliit.smartcampus.rating.dto.RatingResponse;
 import com.sliit.smartcampus.resource.ResourceRepository;
 import com.sliit.smartcampus.resource.Resource;
 import com.sliit.smartcampus.ticket.dto.*;
 import org.springframework.stereotype.Service;
 
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Set;
 
 @Service
 public class TicketService {
+
+    private static final Set<String> RATEABLE_STATUSES = Set.of("RESOLVED", "CLOSED");
+    private static final DateTimeFormatter ISO_FMT = DateTimeFormatter.ISO_INSTANT;
 
     private final TicketRepository ticketRepository;
     private final TicketCommentRepository commentRepository;
@@ -19,19 +27,22 @@ public class TicketService {
     private final UserRepository userRepository;
     private final ResourceRepository resourceRepository;
     private final NotificationService notificationService;
+    private final TicketRatingRepository ratingRepository;
 
     public TicketService(TicketRepository ticketRepository,
                          TicketCommentRepository commentRepository,
                          TicketAttachmentRepository attachmentRepository,
                          UserRepository userRepository,
                          ResourceRepository resourceRepository,
-                         NotificationService notificationService) {
+                         NotificationService notificationService,
+                         TicketRatingRepository ratingRepository) {
         this.ticketRepository = ticketRepository;
         this.commentRepository = commentRepository;
         this.attachmentRepository = attachmentRepository;
         this.userRepository = userRepository;
         this.resourceRepository = resourceRepository;
         this.notificationService = notificationService;
+        this.ratingRepository = ratingRepository;
     }
 
     public TicketResponse createTicket(Long userId, CreateTicketRequest req) {
@@ -134,6 +145,20 @@ public class TicketService {
                         "TICKET_STATUS_CHANGE",
                         "Ticket Status Updated",
                         "Ticket \"" + ticket.title() + "\" status changed to " + req.status(),
+                        "TICKET",
+                        id);
+            }
+
+            boolean enteringRateable = RATEABLE_STATUSES.contains(req.status())
+                    && !RATEABLE_STATUSES.contains(ticket.status());
+            if (enteringRateable && ratingRepository.findByTicketId(id).isEmpty()) {
+                notificationService.notify(
+                        ticket.createdBy(),
+                        "RATING_REQUEST",
+                        "Rate the resolution",
+                        "Your ticket \"" + ticket.title() + "\" was "
+                                + req.status().toLowerCase()
+                                + ". Tap to rate the support you received.",
                         "TICKET",
                         id);
             }
@@ -248,6 +273,23 @@ public class TicketService {
                         a.id(), a.fileName(), a.filePath(), a.fileType(), a.fileSize()))
                 .toList();
 
+        RatingResponse ratingResponse = ratingRepository.findByTicketId(t.id())
+                .map(r -> {
+                    User reporter = userRepository.findById(r.userId()).orElse(null);
+                    User technician = r.technicianId() != null
+                            ? userRepository.findById(r.technicianId()).orElse(null) : null;
+                    return new RatingResponse(
+                            r.stars(),
+                            r.comment(),
+                            r.userId(),
+                            reporter != null ? reporter.name() : null,
+                            r.createdAt().atOffset(ZoneOffset.UTC).format(ISO_FMT),
+                            r.technicianId(),
+                            technician != null ? technician.name() : null);
+                })
+                .orElse(null);
+        boolean canRate = ratingResponse == null && RATEABLE_STATUSES.contains(t.status());
+
         return new TicketResponse(
                 t.id(),
                 "TK-" + t.id(),
@@ -273,7 +315,9 @@ public class TicketService {
                 t.closedAt(),
                 t.createdAt(),
                 t.updatedAt(),
-                attachments);
+                attachments,
+                ratingResponse,
+                canRate);
     }
 
     private TicketListResponse toListResponse(Ticket t) {

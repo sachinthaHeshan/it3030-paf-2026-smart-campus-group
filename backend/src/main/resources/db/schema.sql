@@ -121,7 +121,7 @@ CREATE TABLE IF NOT EXISTS notifications (
     title VARCHAR(255) NOT NULL,
     message TEXT NOT NULL,
     type VARCHAR(50) NOT NULL
-        CHECK (type IN ('BOOKING_APPROVED', 'BOOKING_REJECTED', 'TICKET_STATUS_CHANGE', 'TICKET_ASSIGNED', 'NEW_COMMENT', 'NEW_BOOKING_REQUEST', 'NEW_TICKET')),
+        CHECK (type IN ('BOOKING_APPROVED', 'BOOKING_REJECTED', 'TICKET_STATUS_CHANGE', 'TICKET_ASSIGNED', 'NEW_COMMENT', 'NEW_BOOKING_REQUEST', 'NEW_TICKET', 'RATING_REQUEST')),
     reference_type VARCHAR(20)
         CHECK (reference_type IN ('BOOKING', 'TICKET', 'COMMENT')),
     reference_id BIGINT,
@@ -132,3 +132,25 @@ CREATE TABLE IF NOT EXISTS notifications (
 CREATE INDEX IF NOT EXISTS idx_notifications_unread
     ON notifications(user_id, is_read)
     WHERE is_read = FALSE;
+
+-- 9. ticket_ratings (one rating per ticket; reporter rates the resolution)
+CREATE TABLE IF NOT EXISTS ticket_ratings (
+    id BIGSERIAL PRIMARY KEY,
+    ticket_id BIGINT NOT NULL UNIQUE REFERENCES tickets(id) ON DELETE CASCADE,
+    user_id BIGINT NOT NULL REFERENCES users(id),
+    technician_id BIGINT REFERENCES users(id),
+    stars SMALLINT NOT NULL CHECK (stars BETWEEN 1 AND 5),
+    comment TEXT,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+);
+
+-- Migration note for EXISTING databases (skip on fresh installs):
+--   The notifications.type CHECK above gained 'RATING_REQUEST'. Postgres will
+--   not auto-update an existing constraint, so run once on prior environments:
+--
+--   ALTER TABLE notifications DROP CONSTRAINT notifications_type_check;
+--   ALTER TABLE notifications ADD CONSTRAINT notifications_type_check
+--       CHECK (type IN ('BOOKING_APPROVED', 'BOOKING_REJECTED',
+--                       'TICKET_STATUS_CHANGE', 'TICKET_ASSIGNED',
+--                       'NEW_COMMENT', 'NEW_BOOKING_REQUEST',
+--                       'NEW_TICKET', 'RATING_REQUEST'));
