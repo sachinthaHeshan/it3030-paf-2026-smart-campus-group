@@ -39,6 +39,18 @@ public class ResourceController {
         }
     }
 
+    @GetMapping("/{id}/heatmap")
+    public ResponseEntity<HeatmapResponse> getHeatmap(
+            @PathVariable Long id,
+            @RequestParam(defaultValue = "4") int weeks) {
+        int safeWeeks = Math.max(1, Math.min(weeks, 52));
+        try {
+            return ResponseEntity.ok(resourceService.getHeatmap(id, safeWeeks));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
     @PostMapping
     @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
     public ResponseEntity<ResourceResponse> createResource(

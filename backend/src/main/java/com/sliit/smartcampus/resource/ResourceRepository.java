@@ -1,5 +1,6 @@
 package com.sliit.smartcampus.resource;
 
+import com.sliit.smartcampus.resource.dto.HeatmapCell;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
@@ -102,6 +103,35 @@ public class ResourceRepository {
         return jdbcTemplate.update(
                 "UPDATE resources SET status = ?, updated_at = ? WHERE id = ?",
                 status, now, id);
+    }
+
+    public List<HeatmapCell> findHeatmap(Long resourceId, int weeks) {
+        return jdbcTemplate.query(
+                """
+                SELECT day_of_week::int AS day,
+                       hour_bucket::int AS hour,
+                       COUNT(*) AS booking_count
+                FROM (
+                  SELECT EXTRACT(DOW FROM b.booking_date) AS day_of_week,
+                         hr AS hour_bucket
+                  FROM bookings b
+                  CROSS JOIN LATERAL generate_series(
+                    EXTRACT(HOUR FROM b.start_time)::int,
+                    EXTRACT(HOUR FROM b.end_time - INTERVAL '1 second')::int
+                  ) AS hr
+                  WHERE b.resource_id = ?
+                    AND b.booking_date >= CURRENT_DATE - (? || ' weeks')::interval
+                    AND b.status IN ('APPROVED', 'CANCELLED')
+                ) expanded
+                GROUP BY day_of_week, hour_bucket
+                ORDER BY day_of_week, hour_bucket
+                """,
+                (rs, rowNum) -> new HeatmapCell(
+                        rs.getInt("day"),
+                        rs.getInt("hour"),
+                        rs.getLong("booking_count")),
+                resourceId,
+                weeks);
     }
 
     public int deleteById(Long id) {

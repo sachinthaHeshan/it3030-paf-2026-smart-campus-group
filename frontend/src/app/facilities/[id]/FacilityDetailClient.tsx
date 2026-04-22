@@ -8,6 +8,9 @@ import PageHeader from "@/components/ui/PageHeader";
 import StatusBadge from "@/components/ui/StatusBadge";
 import { apiFetch } from "@/lib/api";
 import ConfirmModal from "@/components/ui/ConfirmModal";
+import BookingHeatmap, {
+  type HeatmapCell,
+} from "@/components/ui/BookingHeatmap";
 import {
   MapPin,
   Users,
@@ -16,6 +19,7 @@ import {
   Trash2,
   Power,
   Loader2,
+  Activity,
 } from "lucide-react";
 
 interface AvailabilityWindow {
@@ -41,6 +45,14 @@ interface Resource {
   availabilityWindows: AvailabilityWindow[];
 }
 
+interface HeatmapData {
+  weeks: number;
+  maxCount: number;
+  cells: HeatmapCell[];
+}
+
+const HEATMAP_WEEKS = 4;
+
 export default function FacilityDetailClient() {
   const params = useParams();
   const router = useRouter();
@@ -54,6 +66,8 @@ export default function FacilityDetailClient() {
     user?.role === "ADMIN";
 
   const [resource, setResource] = useState<Resource | null>(null);
+  const [heatmap, setHeatmap] = useState<HeatmapData | null>(null);
+  const [heatmapLoading, setHeatmapLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [statusLoading, setStatusLoading] = useState(false);
@@ -77,6 +91,17 @@ export default function FacilityDetailClient() {
       }
     }
     if (params.id) load();
+  }, [params.id]);
+
+  useEffect(() => {
+    if (!params.id) return;
+    setHeatmapLoading(true);
+    apiFetch<HeatmapData>(
+      `/api/resources/${params.id}/heatmap?weeks=${HEATMAP_WEEKS}`,
+    )
+      .then(setHeatmap)
+      .catch(() => setHeatmap(null))
+      .finally(() => setHeatmapLoading(false));
   }, [params.id]);
 
   const handleStatusToggle = async () => {
@@ -256,6 +281,37 @@ export default function FacilityDetailClient() {
                 </div>
               )}
             </div>
+          </div>
+
+          <div className="rounded-xl bg-card-bg border border-border shadow-sm p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-[15px] font-semibold text-foreground flex items-center gap-2">
+                <Activity size={16} className="text-muted" />
+                Booking Density (last {HEATMAP_WEEKS} weeks)
+              </h2>
+              {heatmap && heatmap.maxCount > 0 && (
+                <span className="text-[11.5px] text-muted">
+                  Peak: {heatmap.maxCount} booking
+                  {heatmap.maxCount === 1 ? "" : "s"}
+                </span>
+              )}
+            </div>
+            {heatmapLoading ? (
+              <div className="flex items-center justify-center py-8 text-muted">
+                <Loader2 size={18} className="animate-spin" />
+                <span className="ml-2 text-[13px]">Loading heatmap...</span>
+              </div>
+            ) : !heatmap || heatmap.maxCount === 0 ? (
+              <p className="text-[13px] text-muted py-4 text-center">
+                No bookings yet to chart.
+              </p>
+            ) : (
+              <BookingHeatmap
+                cells={heatmap.cells}
+                maxCount={heatmap.maxCount}
+                weeks={heatmap.weeks}
+              />
+            )}
           </div>
 
           {resource.availabilityWindows.length > 0 && (

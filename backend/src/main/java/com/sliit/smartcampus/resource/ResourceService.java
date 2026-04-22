@@ -50,6 +50,14 @@ public class ResourceService {
         return toResponse(resource, windows);
     }
 
+    public HeatmapResponse getHeatmap(Long resourceId, int weeks) {
+        resourceRepository.findById(resourceId)
+                .orElseThrow(() -> new IllegalArgumentException("Resource not found"));
+        List<HeatmapCell> cells = resourceRepository.findHeatmap(resourceId, weeks);
+        long maxCount = cells.stream().mapToLong(HeatmapCell::count).max().orElse(0L);
+        return new HeatmapResponse(weeks, maxCount, cells);
+    }
+
     public ResourceResponse createResource(Long userId, CreateResourceRequest request) {
         validateType(request.type());
         String status = request.status() != null ? request.status() : "ACTIVE";
