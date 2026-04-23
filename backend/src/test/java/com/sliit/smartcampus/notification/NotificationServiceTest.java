@@ -2,7 +2,6 @@ package com.sliit.smartcampus.notification;
 
 import com.sliit.smartcampus.auth.User;
 import com.sliit.smartcampus.auth.UserRepository;
-import com.sliit.smartcampus.notification.dto.NotificationPageResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
