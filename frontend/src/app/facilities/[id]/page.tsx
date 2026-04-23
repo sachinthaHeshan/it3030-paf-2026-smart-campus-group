@@ -1,7 +1,7 @@
 import FacilityDetailClient from "./FacilityDetailClient";
 
 export function generateStaticParams() {
-  return [{ id: "1" }, { id: "2" }, { id: "3" }, { id: "4" }, { id: "5" }, { id: "6" }];
+  return Array.from({ length: 100 }, (_, i) => ({ id: String(i + 1) }));
 }
 
 export default function FacilityDetailPage() {
