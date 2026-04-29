@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useNotifications } from "@/context/NotificationContext";
@@ -193,7 +194,17 @@ export default function TopBar({ onMenuClick }: TopBarProps) {
             <Menu size={22} />
           </button>
         )}
-        <h1 className="text-xl font-bold text-foreground">UniFlow</h1>
+        <Link href="/dashboard/" className="flex items-center gap-2">
+          <Image
+            src="/logo.png"
+            alt="UniFlow logo"
+            width={32}
+            height={32}
+            className="h-8 w-8 object-contain"
+            priority
+          />
+          <h1 className="text-xl font-bold text-foreground">UniFlow</h1>
+        </Link>
       </div>
 
       <div className="flex items-center gap-2 md:gap-4">

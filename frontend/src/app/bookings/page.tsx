@@ -8,7 +8,7 @@ import MainLayout from "@/components/layout/MainLayout";
 import PageHeader from "@/components/ui/PageHeader";
 import StatusBadge from "@/components/ui/StatusBadge";
 import ConfirmModal from "@/components/ui/ConfirmModal";
-import { Plus, Search, Check, X, Loader2 } from "lucide-react";
+import { Plus, Search, Check, X, Loader2, Trash2 } from "lucide-react";
 
 interface BookingRecord {
   id: number;
@@ -38,6 +38,7 @@ function BookingsContent() {
   const [actionLoading, setActionLoading] = useState<number | null>(null);
   const [cancelTarget, setCancelTarget] = useState<number | null>(null);
   const [rejectTarget, setRejectTarget] = useState<number | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<number | null>(null);
   const [errorModal, setErrorModal] = useState<string | null>(null);
 
   const fetchMyBookings = useCallback(async () => {
@@ -109,6 +110,23 @@ function BookingsContent() {
     } catch {
       setCancelTarget(null);
       setErrorModal("Failed to cancel booking");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    setActionLoading(deleteTarget);
+    try {
+      await apiFetch(`/api/bookings/${deleteTarget}`, { method: "DELETE" });
+      setDeleteTarget(null);
+      await fetchData();
+    } catch (err) {
+      setDeleteTarget(null);
+      setErrorModal(
+        err instanceof Error ? err.message : "Failed to delete booking",
+      );
     } finally {
       setActionLoading(null);
     }
@@ -341,6 +359,20 @@ function BookingsContent() {
                               Cancel
                             </button>
                           )}
+                        {(canViewAll ||
+                          (isOwner &&
+                            (booking.status === "CANCELLED" ||
+                              booking.status === "REJECTED"))) && (
+                          <button
+                            type="button"
+                            disabled={isActioning}
+                            onClick={() => setDeleteTarget(booking.id)}
+                            className="rounded p-1.5 text-red-600 hover:bg-red-50"
+                            title="Delete booking"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -371,6 +403,16 @@ function BookingsContent() {
         input={{ placeholder: "Rejection reason (required)", required: true }}
         onConfirm={confirmReject}
         onCancel={() => setRejectTarget(null)}
+      />
+      <ConfirmModal
+        open={deleteTarget !== null}
+        title="Delete Booking"
+        message="Permanently delete this booking? This cannot be undone."
+        confirmLabel="Delete"
+        variant="danger"
+        loading={actionLoading !== null}
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteTarget(null)}
       />
       <ConfirmModal
         open={errorModal !== null}

@@ -76,6 +76,21 @@ public class UserService {
                 .toList();
     }
 
+    /**
+     * Permanently removes a user. Admins cannot delete themselves to avoid lockout.
+     * If the user is referenced by other records (bookings, tickets, etc.) the
+     * underlying foreign-key violation is surfaced by GlobalExceptionHandler as
+     * a 409 with a friendly message.
+     */
+    public void deleteUser(Long actorId, Long targetId) {
+        if (actorId != null && actorId.equals(targetId)) {
+            throw new IllegalStateException("You cannot delete your own account");
+        }
+        userRepository.findById(targetId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        userRepository.deleteById(targetId);
+    }
+
     private UserResponse toResponse(User user) {
         return new UserResponse(
                 user.id(),

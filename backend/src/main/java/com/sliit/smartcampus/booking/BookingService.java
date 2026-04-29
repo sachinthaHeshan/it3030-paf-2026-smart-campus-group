@@ -149,6 +149,33 @@ public class BookingService {
         return getBookingById(bookingId);
     }
 
+    /**
+     * Permanently removes a booking record.
+     * <p>Owners may only delete their own bookings once they are CANCELLED or REJECTED
+     * (active bookings should be cancelled first to keep audit history honest). Admins
+     * and managers may delete a booking in any status.</p>
+     */
+    public void deleteBooking(Long actorId, String actorRole, Long bookingId) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new IllegalArgumentException("Booking not found"));
+
+        boolean isPrivileged = "ADMIN".equals(actorRole) || "MANAGER".equals(actorRole);
+        boolean isOwner = booking.userId().equals(actorId);
+
+        if (!isPrivileged && !isOwner) {
+            throw new IllegalStateException("You do not have permission to delete this booking");
+        }
+
+        if (!isPrivileged
+                && !"CANCELLED".equals(booking.status())
+                && !"REJECTED".equals(booking.status())) {
+            throw new IllegalStateException(
+                    "Cancel the booking before deleting it from your history");
+        }
+
+        bookingRepository.deleteById(bookingId);
+    }
+
     public List<BookingResponse> getMyBookings(Long userId) {
         return bookingRepository.findByUserId(userId).stream()
                 .map(this::toResponse)

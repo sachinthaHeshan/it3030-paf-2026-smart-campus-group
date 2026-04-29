@@ -5,6 +5,7 @@ import MainLayout from "@/components/layout/MainLayout";
 import RoleGuard from "@/components/RoleGuard";
 import PageHeader from "@/components/ui/PageHeader";
 import StatusBadge from "@/components/ui/StatusBadge";
+import { useAuth } from "@/context/AuthContext";
 import { apiFetch } from "@/lib/api";
 import {
   USER_ROLES as ROLES,
@@ -12,7 +13,7 @@ import {
   firstZodMessage,
 } from "@/lib/schemas";
 import ConfirmModal from "@/components/ui/ConfirmModal";
-import { Search, Pencil, X, Check, Loader2 } from "lucide-react";
+import { Search, Pencil, X, Check, Loader2, Trash2 } from "lucide-react";
 
 interface UserRecord {
   id: number;
@@ -31,6 +32,7 @@ interface EditState {
 }
 
 function UserManagementContent() {
+  const { user: currentUser } = useAuth();
   const [users, setUsers] = useState<UserRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -47,6 +49,8 @@ function UserManagementContent() {
     active: true,
   });
   const [saving, setSaving] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<UserRecord | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const [errorModal, setErrorModal] = useState<string | null>(null);
 
   const fetchUsers = useCallback(async () => {
@@ -72,6 +76,25 @@ function UserManagementContent() {
 
   const cancelEdit = () => {
     setEditingId(null);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      await apiFetch(`/api/admin/users/${deleteTarget.id}`, {
+        method: "DELETE",
+      });
+      setUsers((prev) => prev.filter((u) => u.id !== deleteTarget.id));
+      setDeleteTarget(null);
+    } catch (err) {
+      setDeleteTarget(null);
+      setErrorModal(
+        err instanceof Error ? err.message : "Failed to delete user",
+      );
+    } finally {
+      setDeleting(false);
+    }
   };
 
   const saveEdit = async () => {
@@ -366,15 +389,33 @@ function UserManagementContent() {
                             </button>
                           </>
                         ) : (
-                          <button
-                            type="button"
-                            onClick={() => startEdit(u)}
-                            disabled={editingId !== null}
-                            className="rounded-lg border border-border px-3 py-1.5 text-[12px] font-medium text-foreground hover:bg-gray-50 transition-colors disabled:opacity-40 flex items-center gap-1.5"
-                          >
-                            <Pencil size={13} />
-                            Edit
-                          </button>
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => startEdit(u)}
+                              disabled={editingId !== null}
+                              className="rounded-lg border border-border px-3 py-1.5 text-[12px] font-medium text-foreground hover:bg-gray-50 transition-colors disabled:opacity-40 flex items-center gap-1.5"
+                            >
+                              <Pencil size={13} />
+                              Edit
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setDeleteTarget(u)}
+                              disabled={
+                                editingId !== null ||
+                                u.id === currentUser?.id
+                              }
+                              title={
+                                u.id === currentUser?.id
+                                  ? "You cannot delete your own account"
+                                  : "Delete user"
+                              }
+                              className="rounded-lg border border-red-200 p-1.5 text-red-600 hover:bg-red-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </>
                         )}
                       </div>
                     </td>
@@ -385,6 +426,21 @@ function UserManagementContent() {
           </tbody>
         </table>
       </div>
+
+      <ConfirmModal
+        open={deleteTarget !== null}
+        title="Delete User"
+        message={
+          deleteTarget
+            ? `Permanently delete ${deleteTarget.name} (${deleteTarget.email})? This cannot be undone. If the user has bookings, tickets, or other records you'll need to deactivate them instead.`
+            : ""
+        }
+        confirmLabel="Delete"
+        variant="danger"
+        loading={deleting}
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteTarget(null)}
+      />
 
       <ConfirmModal
         open={errorModal !== null}

@@ -4,6 +4,7 @@ import { GoogleLogin, type CredentialResponse } from "@react-oauth/google";
 import { useAuth } from "../../context/AuthContext";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { useState, useEffect } from "react";
 import { emailLoginSchema, firstZodMessage } from "@/lib/schemas";
 import { Loader2, Mail, Lock } from "lucide-react";
@@ -74,6 +75,16 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         <div className="bg-white rounded-2xl shadow-xl p-8 space-y-6">
           <div className="text-center space-y-2">
+            <div className="flex justify-center">
+              <Image
+                src="/logo.png"
+                alt="UniFlow logo"
+                width={64}
+                height={64}
+                className="h-16 w-16 object-contain"
+                priority
+              />
+            </div>
             <h1 className="text-3xl font-bold text-gray-900">UniFlow</h1>
             <p className="text-gray-500 text-sm">
               Sign in to manage bookings, resources, and tickets

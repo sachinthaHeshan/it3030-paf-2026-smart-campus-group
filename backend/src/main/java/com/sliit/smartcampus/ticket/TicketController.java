@@ -4,11 +4,13 @@ import com.sliit.smartcampus.ticket.dto.*;
 import com.sliit.smartcampus.user.UserService;
 import com.sliit.smartcampus.user.dto.UserResponse;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 
@@ -47,50 +49,36 @@ public class TicketController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<?> getTicketById(@PathVariable Long id, Authentication auth) {
-        try {
-            TicketResponse ticket = ticketService.getTicketById(id);
-            Long userId = Long.parseLong(auth.getPrincipal().toString());
-            String role = auth.getAuthorities().iterator().next().getAuthority();
-            boolean isOwner = ticket.createdById().equals(userId);
-            boolean isAssignee = ticket.assignedToId() != null && ticket.assignedToId().equals(userId);
-            boolean isManagerOrAdmin = "ROLE_ADMIN".equals(role) || "ROLE_MANAGER".equals(role);
+    public ResponseEntity<TicketResponse> getTicketById(@PathVariable Long id, Authentication auth) {
+        TicketResponse ticket = ticketService.getTicketById(id);
+        Long userId = Long.parseLong(auth.getPrincipal().toString());
+        String role = auth.getAuthorities().iterator().next().getAuthority();
+        boolean isOwner = ticket.createdById().equals(userId);
+        boolean isAssignee = ticket.assignedToId() != null && ticket.assignedToId().equals(userId);
+        boolean isManagerOrAdmin = "ROLE_ADMIN".equals(role) || "ROLE_MANAGER".equals(role);
 
-            if (!isOwner && !isAssignee && !isManagerOrAdmin) {
-                return ResponseEntity.status(403).build();
-            }
-            return ResponseEntity.ok(ticket);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.notFound().build();
+        if (!isOwner && !isAssignee && !isManagerOrAdmin) {
+            return ResponseEntity.status(403).build();
         }
+        return ResponseEntity.ok(ticket);
     }
 
     @PostMapping
-    public ResponseEntity<?> createTicket(
+    public ResponseEntity<TicketResponse> createTicket(
             @Valid @RequestBody CreateTicketRequest request, Authentication auth) {
         Long userId = Long.parseLong(auth.getPrincipal().toString());
-        try {
-            TicketResponse ticket = ticketService.createTicket(userId, request);
-            return ResponseEntity.status(201).body(ticket);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
+        TicketResponse ticket = ticketService.createTicket(userId, request);
+        return ResponseEntity.status(201).body(ticket);
     }
 
     @PatchMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'TECHNICIAN')")
-    public ResponseEntity<?> updateTicket(
+    public ResponseEntity<TicketResponse> updateTicket(
             @PathVariable Long id,
-            @RequestBody UpdateTicketRequest request,
+            @Valid @RequestBody UpdateTicketRequest request,
             Authentication auth) {
         Long actorId = Long.parseLong(auth.getPrincipal().toString());
-        try {
-            return ResponseEntity.ok(ticketService.updateTicket(id, request, actorId));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        } catch (IllegalStateException e) {
-            return ResponseEntity.status(409).body(Map.of("error", e.getMessage()));
-        }
+        return ResponseEntity.ok(ticketService.updateTicket(id, request, actorId));
     }
 
     @GetMapping("/{id}/comments")
@@ -99,32 +87,26 @@ public class TicketController {
     }
 
     @PostMapping("/{id}/comments")
-    public ResponseEntity<?> addComment(
+    public ResponseEntity<TicketCommentResponse> addComment(
             @PathVariable Long id,
-            @RequestBody CreateCommentRequest request,
+            @Valid @RequestBody CreateCommentRequest request,
             Authentication auth) {
         Long userId = Long.parseLong(auth.getPrincipal().toString());
-        try {
-            TicketCommentResponse comment = ticketService.addComment(id, userId, request);
-            return ResponseEntity.status(201).body(comment);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
+        TicketCommentResponse comment = ticketService.addComment(id, userId, request);
+        return ResponseEntity.status(201).body(comment);
     }
 
     @PatchMapping("/{ticketId}/comments/{commentId}")
     public ResponseEntity<?> updateComment(
             @PathVariable Long ticketId,
             @PathVariable Long commentId,
-            @RequestBody UpdateCommentRequest request,
+            @Valid @RequestBody UpdateCommentRequest request,
             Authentication auth) {
         Long userId = Long.parseLong(auth.getPrincipal().toString());
         try {
             return ResponseEntity.ok(ticketService.updateComment(commentId, userId, request));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         } catch (IllegalStateException e) {
-            return ResponseEntity.status(403).body(Map.of("error", e.getMessage()));
+            return forbidden(e.getMessage());
         }
     }
 
@@ -139,34 +121,31 @@ public class TicketController {
         try {
             ticketService.deleteComment(commentId, userId, role);
             return ResponseEntity.noContent().build();
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.notFound().build();
         } catch (IllegalStateException e) {
-            return ResponseEntity.status(403).body(Map.of("error", e.getMessage()));
+            return forbidden(e.getMessage());
         }
     }
 
     @PostMapping("/{id}/attachments")
-    public ResponseEntity<?> addAttachment(
+    public ResponseEntity<TicketAttachmentResponse> addAttachment(
             @PathVariable Long id,
-            @RequestBody Map<String, Object> body) {
-        try {
-            String fileName = (String) body.get("fileName");
-            String filePath = (String) body.get("filePath");
-            String fileType = (String) body.get("fileType");
-            long fileSize = ((Number) body.get("fileSize")).longValue();
-
-            TicketAttachmentResponse attachment = ticketService.addAttachment(
-                    id, fileName, filePath, fileType, fileSize);
-            return ResponseEntity.status(201).body(attachment);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
+            @Valid @RequestBody CreateAttachmentRequest request) {
+        TicketAttachmentResponse attachment = ticketService.addAttachment(
+                id, request.fileName(), request.filePath(), request.fileType(), request.fileSize());
+        return ResponseEntity.status(201).body(attachment);
     }
 
     @GetMapping("/technicians")
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
     public ResponseEntity<List<UserResponse>> getTechnicians() {
         return ResponseEntity.ok(userService.getTechnicians());
+    }
+
+    private static ResponseEntity<Map<String, Object>> forbidden(String message) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(
+                "status", HttpStatus.FORBIDDEN.value(),
+                "error", HttpStatus.FORBIDDEN.getReasonPhrase(),
+                "message", message != null ? message : "Forbidden",
+                "timestamp", Instant.now().toString()));
     }
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import {
@@ -65,8 +66,15 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
     <>
       <div className="flex items-center justify-between px-5 py-6">
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-white font-bold text-lg">
-            U
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white p-1">
+            <Image
+              src="/logo.png"
+              alt="UniFlow logo"
+              width={32}
+              height={32}
+              className="h-full w-full object-contain"
+              priority
+            />
           </div>
           <div>
             <p className="text-white font-semibold text-[15px] leading-tight">

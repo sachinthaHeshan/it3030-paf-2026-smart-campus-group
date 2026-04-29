@@ -75,18 +75,12 @@ public class BookingController {
 
     @PutMapping("/bookings/{id}/review")
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
-    public ResponseEntity<?> reviewBooking(
+    public ResponseEntity<BookingResponse> reviewBooking(
             @PathVariable Long id,
-            @RequestBody ReviewBookingRequest request,
+            @Valid @RequestBody ReviewBookingRequest request,
             Authentication auth) {
         Long reviewerId = Long.parseLong(auth.getPrincipal().toString());
-        try {
-            return ResponseEntity.ok(bookingService.reviewBooking(reviewerId, id, request));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        } catch (IllegalStateException e) {
-            return ResponseEntity.status(409).body(Map.of("error", e.getMessage()));
-        }
+        return ResponseEntity.ok(bookingService.reviewBooking(reviewerId, id, request));
     }
 
     @PutMapping("/bookings/{id}/cancel")
@@ -100,6 +94,16 @@ public class BookingController {
         } catch (IllegalStateException e) {
             return ResponseEntity.status(409).body(Map.of("error", e.getMessage()));
         }
+    }
+
+    @DeleteMapping("/bookings/{id}")
+    public ResponseEntity<Void> deleteBooking(
+            @PathVariable Long id, Authentication auth) {
+        Long userId = Long.parseLong(auth.getPrincipal().toString());
+        String role = auth.getAuthorities().iterator().next().getAuthority()
+                .replace("ROLE_", "");
+        bookingService.deleteBooking(userId, role, id);
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/bookings/schedule")

@@ -16,6 +16,7 @@ import {
   FileText,
   User,
   Loader2,
+  Trash2,
 } from "lucide-react";
 
 interface BookingDetail {
@@ -52,10 +53,17 @@ export default function BookingDetailClient() {
   const [reviewReason, setReviewReason] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [errorModal, setErrorModal] = useState<string | null>(null);
 
   const canReview = user?.role === "MANAGER" || user?.role === "ADMIN";
+  const isPrivileged = user?.role === "MANAGER" || user?.role === "ADMIN";
   const isOwner = booking?.userId === user?.id;
+  const canDelete =
+    booking != null &&
+    (isPrivileged ||
+      (isOwner &&
+        (booking.status === "CANCELLED" || booking.status === "REJECTED")));
 
   const fetchBooking = useCallback(async () => {
     try {
@@ -105,6 +113,22 @@ export default function BookingDetailClient() {
     } catch {
       setShowCancelModal(false);
       setErrorModal("Failed to cancel booking");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const confirmDelete = async () => {
+    setActionLoading(true);
+    try {
+      await apiFetch(`/api/bookings/${id}`, { method: "DELETE" });
+      setShowDeleteModal(false);
+      router.push("/bookings/");
+    } catch (err) {
+      setShowDeleteModal(false);
+      setErrorModal(
+        err instanceof Error ? err.message : "Failed to delete booking",
+      );
     } finally {
       setActionLoading(false);
     }
@@ -310,18 +334,34 @@ export default function BookingDetailClient() {
             </div>
           )}
 
-          {isOwner &&
+          {(isOwner || canDelete) &&
             (booking.status === "PENDING" ||
-              booking.status === "APPROVED") && (
-              <div className="flex justify-end">
-                <button
-                  type="button"
-                  disabled={actionLoading}
-                  onClick={() => setShowCancelModal(true)}
-                  className="rounded-lg border border-red-200 px-5 py-2.5 text-[13px] font-medium text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
-                >
-                  Cancel Booking
-                </button>
+              booking.status === "APPROVED" ||
+              canDelete) && (
+              <div className="flex justify-end gap-2">
+                {isOwner &&
+                  (booking.status === "PENDING" ||
+                    booking.status === "APPROVED") && (
+                    <button
+                      type="button"
+                      disabled={actionLoading}
+                      onClick={() => setShowCancelModal(true)}
+                      className="rounded-lg border border-red-200 px-5 py-2.5 text-[13px] font-medium text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
+                    >
+                      Cancel Booking
+                    </button>
+                  )}
+                {canDelete && (
+                  <button
+                    type="button"
+                    disabled={actionLoading}
+                    onClick={() => setShowDeleteModal(true)}
+                    className="flex items-center gap-2 rounded-lg bg-danger px-5 py-2.5 text-[13px] font-semibold text-white hover:bg-red-600 transition-colors disabled:opacity-50"
+                  >
+                    <Trash2 size={14} />
+                    Delete Booking
+                  </button>
+                )}
               </div>
             )}
         </div>
@@ -335,6 +375,16 @@ export default function BookingDetailClient() {
           loading={actionLoading}
           onConfirm={confirmCancel}
           onCancel={() => setShowCancelModal(false)}
+        />
+        <ConfirmModal
+          open={showDeleteModal}
+          title="Delete Booking"
+          message="Permanently delete this booking? This action cannot be undone."
+          confirmLabel="Delete"
+          variant="danger"
+          loading={actionLoading}
+          onConfirm={confirmDelete}
+          onCancel={() => setShowDeleteModal(false)}
         />
         <ConfirmModal
           open={errorModal !== null}

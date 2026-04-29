@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { signupSchema, firstZodMessage } from "@/lib/schemas";
@@ -63,6 +64,16 @@ export default function SignupPage() {
       <div className="w-full max-w-md">
         <div className="bg-white rounded-2xl shadow-xl p-8 space-y-6">
           <div className="text-center space-y-2">
+            <div className="flex justify-center">
+              <Image
+                src="/logo.png"
+                alt="UniFlow logo"
+                width={64}
+                height={64}
+                className="h-16 w-16 object-contain"
+                priority
+              />
+            </div>
             <h1 className="text-3xl font-bold text-gray-900">Create account</h1>
             <p className="text-gray-500 text-sm">
               Join UniFlow to book resources and report incidents

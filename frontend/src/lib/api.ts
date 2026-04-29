@@ -2,6 +2,19 @@ import config from "../../config";
 
 const TOKEN_KEY = "uniflow_token";
 
+/**
+ * The backend's GlobalExceptionHandler joins Bean Validation messages as
+ * "field: message, field: message". Strip the field prefixes so toasts read
+ * naturally for end users.
+ */
+function cleanBackendMessage(raw: string): string {
+  return raw
+    .split(",")
+    .map((part) => part.trim().replace(/^[a-zA-Z0-9_]+:\s*/, ""))
+    .filter((part) => part.length > 0)
+    .join(" ");
+}
+
 export async function apiFetch<T = unknown>(
   path: string,
   options: RequestInit = {},
@@ -35,7 +48,13 @@ export async function apiFetch<T = unknown>(
     let message = `API error: ${res.status}`;
     try {
       const body = await res.json();
-      if (body?.error) message = body.error;
+      const raw =
+        typeof body?.message === "string" && body.message.trim()
+          ? body.message
+          : typeof body?.error === "string" && body.error.trim()
+            ? body.error
+            : null;
+      if (raw) message = cleanBackendMessage(raw);
     } catch {
       // no JSON body
     }

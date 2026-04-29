@@ -1,4 +1,7 @@
 package com.sliit.smartcampus.auth.dto;
 
-public record GoogleAuthRequest(String credential) {
+import jakarta.validation.constraints.NotBlank;
+
+public record GoogleAuthRequest(
+        @NotBlank(message = "Google credential is required") String credential) {
 }

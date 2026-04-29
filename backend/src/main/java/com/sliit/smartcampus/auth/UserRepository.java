@@ -98,4 +98,8 @@ public class UserRepository {
         String sql = "SELECT * FROM users WHERE role IN (" + placeholders + ") AND is_active = TRUE";
         return jdbcTemplate.query(sql, ROW_MAPPER, roles.toArray());
     }
+
+    public int deleteById(Long id) {
+        return jdbcTemplate.update("DELETE FROM users WHERE id = ?", id);
+    }
 }

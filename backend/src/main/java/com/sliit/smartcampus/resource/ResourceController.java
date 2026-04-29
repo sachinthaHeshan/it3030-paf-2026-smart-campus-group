@@ -32,11 +32,7 @@ public class ResourceController {
 
     @GetMapping("/{id}")
     public ResponseEntity<ResourceResponse> getResource(@PathVariable Long id) {
-        try {
-            return ResponseEntity.ok(resourceService.getResource(id));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.notFound().build();
-        }
+        return ResponseEntity.ok(resourceService.getResource(id));
     }
 
     @GetMapping("/{id}/heatmap")
@@ -44,11 +40,7 @@ public class ResourceController {
             @PathVariable Long id,
             @RequestParam(defaultValue = "4") int weeks) {
         int safeWeeks = Math.max(1, Math.min(weeks, 52));
-        try {
-            return ResponseEntity.ok(resourceService.getHeatmap(id, safeWeeks));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.notFound().build();
-        }
+        return ResponseEntity.ok(resourceService.getHeatmap(id, safeWeeks));
     }
 
     @PostMapping
@@ -57,48 +49,29 @@ public class ResourceController {
             Authentication authentication,
             @Valid @RequestBody CreateResourceRequest request) {
         Long userId = Long.parseLong(authentication.getName());
-        try {
-            ResourceResponse response = resourceService.createResource(userId, request);
-            return ResponseEntity.ok(response);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().build();
-        }
+        return ResponseEntity.ok(resourceService.createResource(userId, request));
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
     public ResponseEntity<ResourceResponse> updateResource(
             @PathVariable Long id,
-            @RequestBody UpdateResourceRequest request) {
-        try {
-            ResourceResponse response = resourceService.updateResource(id, request);
-            return ResponseEntity.ok(response);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().build();
-        }
+            @Valid @RequestBody UpdateResourceRequest request) {
+        return ResponseEntity.ok(resourceService.updateResource(id, request));
     }
 
     @PatchMapping("/{id}/status")
     @PreAuthorize("hasAnyRole('TECHNICIAN', 'MANAGER', 'ADMIN')")
     public ResponseEntity<ResourceResponse> updateStatus(
             @PathVariable Long id,
-            @RequestBody UpdateStatusRequest request) {
-        try {
-            ResourceResponse response = resourceService.updateStatus(id, request);
-            return ResponseEntity.ok(response);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().build();
-        }
+            @Valid @RequestBody UpdateStatusRequest request) {
+        return ResponseEntity.ok(resourceService.updateStatus(id, request));
     }
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteResource(@PathVariable Long id) {
-        try {
-            resourceService.deleteResource(id);
-            return ResponseEntity.noContent().build();
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.notFound().build();
-        }
+        resourceService.deleteResource(id);
+        return ResponseEntity.noContent().build();
     }
 }

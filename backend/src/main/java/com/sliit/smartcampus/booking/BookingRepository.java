@@ -117,6 +117,10 @@ public class BookingRepository {
                 now, id);
     }
 
+    public int deleteById(Long id) {
+        return jdbcTemplate.update("DELETE FROM bookings WHERE id = ?", id);
+    }
+
     public List<Booking> findByResourceAndDate(Long resourceId, LocalDate date) {
         return jdbcTemplate.query(
                 """

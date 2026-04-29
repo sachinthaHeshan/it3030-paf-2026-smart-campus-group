@@ -97,6 +97,7 @@ function NotificationsContent() {
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<{ id: number; event: React.MouseEvent } | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const fetchNotifications = useCallback(
     async (pageNum: number, append = false) => {
@@ -160,21 +161,18 @@ function NotificationsContent() {
   };
 
   const confirmDelete = async () => {
-    if (!deleteTarget) return;
+    if (!deleteTarget || deleting) return;
     const id = deleteTarget.id;
-    const deleted = notifications.find((n) => n.id === id);
-    setNotifications((prev) => prev.filter((n) => n.id !== id));
-    if (deleted && !deleted.isRead) {
-      setUnreadCount((c) => Math.max(0, c - 1));
-    }
-    setDeleteTarget(null);
+    setDeleting(true);
     try {
       await apiFetch(`/api/notifications/${id}`, { method: "DELETE" });
     } catch {
-      // silently ignore
+      // silently ignore — list reload below will reconcile UI state
     }
     await fetchNotifications(0);
     refreshUnreadCount();
+    setDeleting(false);
+    setDeleteTarget(null);
   };
 
   if (loading) {
@@ -297,10 +295,13 @@ function NotificationsContent() {
         open={deleteTarget !== null}
         title="Delete Notification"
         message="Are you sure you want to delete this notification?"
-        confirmLabel="Delete"
+        confirmLabel={deleting ? "Deleting..." : "Delete"}
         variant="danger"
+        loading={deleting}
         onConfirm={confirmDelete}
-        onCancel={() => setDeleteTarget(null)}
+        onCancel={() => {
+          if (!deleting) setDeleteTarget(null);
+        }}
       />
     </div>
   );
